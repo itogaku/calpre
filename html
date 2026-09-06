@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>つりあい - 数学トレーニング</title>
+<style>
+  :root{
+    --bg:#141f1b;
+    --page:#0d1512;
+    --surface:#1d2c26;
+    --surface2:#25372f;
+    --text:#efead9;
+    --text-muted:#93a69c;
+    --gold:#e3ae4c;
+    --gold-dim:#8b6b2e;
+    --coral:#ff7a54;
+    --soft-miss:#d9705a;
+    --border:rgba(239,234,217,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--page);
+    color:var(--text);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 12px;
+  }
+  .mono{
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;
+    font-variant-numeric:tabular-nums;
+  }
+  #frame{
+    width:100%;
+    max-width:420px;
+    background:var(--bg);
+    border-radius:28px;
+    border:1px solid var(--border);
+    box-shadow:0 30px 60px rgba(0,0,0,0.45);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    min-height:700px;
+    position:relative;
+  }
+  .hidden{display:none !important;}
+
+  .statusbar{
+    display:flex;align-items:center;gap:10px;padding:16px 18px 12px;
+    border-bottom:1px solid var(--border);flex-shrink:0;
+  }
+  .lv-badge{font-size:13px;font-weight:700;color:var(--gold);border:1px solid var(--gold-dim);border-radius:8px;padding:3px 8px;white-space:nowrap;}
+  .xp-track{flex:1;height:8px;background:var(--surface2);border-radius:5px;overflow:hidden;}
+  .xp-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:5px;transition:width .5s ease;}
+  .streak{font-size:13px;color:var(--coral);font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:3px;}
+
+  .screen{flex:1;display:flex;flex-direction:column;padding:20px 20px 24px;overflow-y:auto;}
+
+  .hero-title{font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:4px 0 2px;}
+  .hero-sub{font-size:13px;color:var(--text-muted);margin-bottom:14px;}
+
+  .rulebook-card{
+    display:flex;align-items:center;gap:12px;
+    background:linear-gradient(135deg,var(--surface2),var(--surface));
+    border:1px solid var(--gold-dim);border-radius:14px;padding:13px 14px;margin-bottom:18px;cursor:pointer;
+  }
+  .rulebook-icon{font-size:22px;}
+  .rulebook-text{flex:1;}
+  .rulebook-text b{display:block;font-size:14px;}
+  .rulebook-text span{display:block;font-size:11.5px;color:var(--text-muted);margin-top:1px;}
+  .rulebook-count{font-size:15px;font-weight:800;color:var(--gold);white-space:nowrap;}
+
+  .grade-header{
+    font-size:12px;font-weight:800;color:var(--page);background:var(--gold);
+    display:inline-block;padding:4px 12px;border-radius:20px;margin:18px 0 12px;
+  }
+  .grade-header:first-child{margin-top:2px;}
+  .unit-card{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:13px 14px;margin-bottom:10px;cursor:pointer;
+  }
+  .unit-card:hover{border-color:var(--gold-dim);}
+  .unit-card-icon{
+    width:36px;height:36px;border-radius:10px;background:var(--surface2);
+    display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gold);flex-shrink:0;
+  }
+  .unit-card-info{flex:1;min-width:0;}
+  .unit-card-title{font-size:14px;font-weight:800;}
+  .unit-card-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .unit-card-progress{font-size:12px;color:var(--gold);font-weight:700;white-space:nowrap;text-align:right;}
+  .unit-card-chevron{color:var(--text-muted);font-size:16px;margin-left:2px;}
+  .unit-section{margin-bottom:20px;}
+  .unit-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+  .unit-title{font-size:14.5px;font-weight:800;}
+  .unit-sub{font-size:11px;color:var(--text-muted);}
+  .unit-locked-note{font-size:11.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
+
+  .stage-row{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:12px 14px;margin-bottom:10px;color:var(--text);cursor:pointer;
+    transition:border-color .15s ease;position:relative;
+  }
+  .stage-row:hover{border-color:var(--gold-dim);}
+  .stage-row.locked{opacity:0.45;cursor:default;}
+  .stage-row.locked:hover{border-color:var(--border);}
+  .stage-num{
+    width:30px;height:30px;border-radius:9px;background:var(--surface2);
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+  }
+  .stage-info{flex:1;min-width:0;}
+  .stage-title{display:block;font-size:14px;font-weight:700;}
+  .stage-formula{display:block;font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .stage-stars{font-size:13px;color:var(--gold);letter-spacing:1px;white-space:nowrap;}
+  .stage-stars .dim{color:rgba(239,234,217,0.2);}
+  .new-tag{
+    position:absolute;top:-6px;right:10px;background:var(--coral);color:#241a08;
+    font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:6px;
+  }
+
+  .stat-strip{display:flex;gap:10px;margin-top:auto;padding-top:16px;}
+  .stat-box{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;text-align:center;}
+  .stat-box b{display:block;font-size:16px;color:var(--gold);}
+  .stat-box span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+  .quiz-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .back-btn{background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:6px 0;}
+  .dots{display:flex;gap:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--surface2);}
+  .dot.done{background:var(--gold);}
+  .dot.current{background:var(--coral);}
+  .unit-crumb{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
+
+  .scale-wrap{display:flex;justify-content:center;margin:0 0 2px;}
+  .scale-svg{width:100px;height:70px;}
+  .scale-beam{transition:transform .55s cubic-bezier(.34,1.56,.64,1);}
+  .scale-beam.shake{animation:shakeit .35s ease;}
+  @keyframes shakeit{
+    0%,100%{transform:rotate(var(--tilt)) translateX(0);}
+    25%{transform:rotate(var(--tilt)) translateX(-4px);}
+    75%{transform:rotate(var(--tilt)) translateX(4px);}
+  }
+
+  .equation-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;margin:0 0 8px;}
+  .equation{font-size:21px;font-weight:700;letter-spacing:0.02em;}
+
+  .rule-strip{text-align:center;font-size:10.5px;color:var(--text-muted);margin:0 0 8px;opacity:0.85;}
+
+  .working-card{background:var(--surface2);border:1px dashed var(--gold-dim);border-radius:14px;padding:14px 12px;margin:0 0 8px;}
+  .working-lines{font-size:16px;line-height:2.1;text-align:center;}
+  .blank-filled{color:var(--gold);font-weight:700;}
+  .blank-active{color:var(--coral);font-weight:800;border-bottom:2px solid var(--coral);padding:0 5px;}
+  .blank-pending{color:var(--text-muted);opacity:0.35;}
+
+  .feedback-line{min-height:20px;text-align:center;font-size:13px;font-weight:700;margin-bottom:4px;}
+  .feedback-line.ok{color:var(--gold);}
+  .feedback-line.ng{color:var(--soft-miss);}
+  .rule-chip{
+    display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--gold-dim);
+    color:var(--gold);font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;
+  }
+
+  .hint-box{background:var(--surface2);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.6;}
+
+  .answer-area{text-align:center;margin:4px 0 6px;}
+  .answer-display{display:inline-block;min-width:110px;font-size:24px;font-weight:700;background:var(--surface);border:1px solid var(--gold-dim);border-radius:10px;padding:8px 18px;color:var(--gold);}
+
+  .sign-buttons{display:flex;gap:14px;justify-content:center;margin:10px 0 4px;}
+  .sign-btn{width:96px;height:60px;font-size:30px;font-weight:800;border-radius:14px;background:var(--surface);border:1px solid var(--border);cursor:pointer;}
+  .sign-btn:active{background:var(--surface2);}
+  .sign-btn.plus{color:var(--gold);border-color:var(--gold-dim);}
+  .sign-btn.minus{color:var(--coral);border-color:var(--coral);}
+
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+  .key{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 0;font-size:17px;font-weight:700;color:var(--text);cursor:pointer;}
+  .key:active{background:var(--surface2);}
+  .key.op{color:var(--coral);}
+
+  .action-row{display:flex;gap:10px;margin-top:10px;}
+  .btn{flex:1;border:none;border-radius:12px;padding:13px 0;font-size:14px;font-weight:700;cursor:pointer;}
+  .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .btn-primary{background:var(--gold);color:#241a08;}
+  .btn-primary:active, .btn-ghost:active{transform:translateY(1px);}
+  .btn-small{flex:none;padding:8px 12px;font-size:12.5px;}
+
+  .coin{position:fixed;width:8px;height:8px;border-radius:50%;background:var(--gold);pointer-events:none;animation:coinburst .7s ease-out forwards;z-index:50;}
+  @keyframes coinburst{to{transform:translate(var(--dx),var(--dy)) scale(0.3);opacity:0;}}
+
+  .result-title{font-size:20px;font-weight:800;text-align:center;margin:10px 0 4px;}
+  .result-score{text-align:center;font-size:38px;font-weight:800;color:var(--gold);margin:8px 0 2px;}
+  .result-stars{text-align:center;font-size:22px;color:var(--gold);margin-bottom:10px;letter-spacing:3px;}
+  .result-msg{text-align:center;font-size:13.5px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;}
+  .result-xp{text-align:center;font-size:13px;color:var(--gold);margin-bottom:14px;font-weight:700;}
+  .levelup-banner{background:linear-gradient(90deg,var(--gold-dim),var(--gold));color:#241a08;text-align:center;font-weight:800;font-size:13px;border-radius:10px;padding:8px;margin-bottom:12px;}
+
+  .guide-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .guide-badge{background:var(--coral);color:#241a08;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;}
+  .guide-name{font-size:17px;font-weight:800;}
+  .guide-eq{font-size:19px;text-align:center;margin:6px 0 12px;}
+
+  .reveal-card{
+    background:linear-gradient(160deg,var(--surface2),var(--surface));
+    border:1px solid var(--gold);border-radius:18px;padding:24px 18px;text-align:center;margin:10px 0 16px;
+    animation:revealcard .55s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes revealcard{from{transform:scale(.55) rotateY(80deg);opacity:0;}to{transform:scale(1) rotateY(0);opacity:1;}}
+  .reveal-icon{font-size:34px;margin-bottom:6px;}
+  .reveal-got{font-size:11.5px;color:var(--gold);font-weight:800;letter-spacing:.03em;margin-bottom:4px;}
+  .reveal-name{font-size:17px;font-weight:800;margin-bottom:6px;}
+  .reveal-short{font-size:15px;color:var(--gold);font-weight:700;line-height:1.6;}
+  .reveal-sample{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin-top:6px;}
+
+  .rb-unit-title{font-size:13px;font-weight:800;color:var(--gold);margin:16px 0 8px;}
+  .rb-unit-title:first-child{margin-top:0;}
+  .rule-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:9px;cursor:pointer;}
+  .rule-row.locked{opacity:0.4;cursor:default;}
+  .rule-icon{font-size:16px;width:32px;text-align:center;flex-shrink:0;}
+  .rule-name{font-size:13.5px;font-weight:700;}
+  .rule-short{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+  .meter{height:6px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:7px;}
+  .meter > span{display:block;height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));}
+  .mastery-label{font-size:10.5px;color:var(--text-muted);margin-top:4px;}
+
+  .sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.55);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:39;}
+  .sheet-backdrop.open{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+    border-top:1px solid var(--gold-dim);border-radius:20px 20px 0 0;padding:20px 20px 24px;
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.3,.9,.4,1);z-index:40;
+    max-height:75%;overflow-y:auto;
+  }
+  .sheet.open{transform:translateY(0);}
+  .sheet-icon{font-size:24px;margin-bottom:6px;}
+  .sheet-name{font-size:16px;font-weight:800;margin-bottom:6px;}
+  .sheet-short{font-family:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;font-size:15px;color:var(--gold);font-weight:700;margin-bottom:10px;line-height:1.6;}
+  .sheet-detail{font-family:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:16px;}
+  .sheet-close{width:100%;}
+
+  .toast{
+    position:absolute;top:66px;left:20px;right:20px;background:var(--gold);color:#241a08;
+    padding:10px 14px;border-radius:12px;font-size:12.5px;font-weight:700;text-align:center;z-index:45;
+    animation:toastin .3s ease, toastout .3s ease 2.5s forwards;
+  }
+  @keyframes toastin{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes toastout{to{opacity:0;transform:translateY(-8px);}}
+</style>
+</head>
+<body>
+<div id="frame">
+
+  <div class="statusbar" id="statusbar">
+    <div class="lv-badge" id="lvBadge">Lv.1</div>
+    <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    <div class="streak" id="streakBadge">🔥0日</div>
+  </div>
+
+  <!-- HOME -->
+  <main class="screen" id="screen-home">
+    <div class="hero-title">つりあい</div>
+    <div class="hero-sub">数学トレーニング — 解き方を集めよう。</div>
+    <div class="rulebook-card" id="openRulebook">
+      <div class="rulebook-icon">📖</div>
+      <div class="rulebook-text"><b>解き方図鑑</b><span>獲得した解き方をいつでも見返せる</span></div>
+      <div class="rulebook-count" id="rulebookCount">0/0</div>
+    </div>
+    <div id="unitList"></div>
+    <div class="stat-strip">
+      <div class="stat-box"><b id="statToday">0</b><span>本日の正解</span></div>
+      <div class="stat-box"><b id="statCorrect">0</b><span>累計正解</span></div>
+      <div class="stat-box"><b id="statDay">0</b><span>連続日数</span></div>
+    </div>
+  </main>
+
+  <!-- UNIT (stage list for one unit) -->
+  <main class="screen hidden" id="screen-unit">
+    <div class="quiz-top" style="margin-bottom:6px;">
+      <button class="back-btn" id="unitBackBtn">← もどる</button>
+    </div>
+    <div class="hero-title" id="unitScreenTitle"></div>
+    <div class="hero-sub" id="unitScreenSub"></div>
+    <div id="unitStageList"></div>
+  </main>
+
+  <!-- GUIDE -->
+  <main class="screen hidden" id="screen-guide">
+    <div class="guide-header">
+      <span class="guide-badge" id="guideBadge">NEW</span>
+      <span class="guide-name" id="guideName">新しい解き方</span>
+    </div>
+    <div class="guide-eq mono" id="guideEq">x + 4 = 12</div>
+    <div class="working-lines mono" id="guideSteps"></div>
+    <div id="guideReveal" class="hidden">
+      <div class="reveal-card">
+        <div class="reveal-icon" id="revealIcon">⇄</div>
+        <div class="reveal-got">解き方を獲得!</div>
+        <div class="reveal-name" id="revealName"></div>
+        <div class="reveal-short mono" id="revealShort"></div>
+        <div class="reveal-sample mono" id="revealSample"></div>
+      </div>
+    </div>
+    <div class="action-row" style="margin-top:auto;">
+      <button class="btn btn-primary" id="guideNextBtn">つぎへ</button>
+    </div>
+  </main>
+
+  <!-- QUIZ -->
+  <main class="screen hidden" id="screen-quiz">
+    <div class="quiz-top">
+      <button class="back-btn" id="backBtn">← もどる</button>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="unit-crumb" id="unitCrumb"></div>
+    <div class="scale-wrap">
+      <svg class="scale-svg" viewBox="0 0 200 140">
+        <polygon points="70,130 130,130 100,102" fill="var(--gold-dim)"/>
+        <rect x="97" y="34" width="6" height="70" fill="var(--gold-dim)"/>
+        <circle cx="100" cy="32" r="5" fill="var(--gold)"/>
+        <g class="scale-beam" id="scaleBeam" style="transform-origin:100px 32px;">
+          <rect x="28" y="29" width="144" height="6" rx="3" fill="var(--gold)"/>
+          <line x1="34" y1="32" x2="34" y2="58" stroke="var(--gold)" stroke-width="2"/>
+          <line x1="166" y1="32" x2="166" y2="58" stroke="var(--gold)" stroke-width="2"/>
+          <path d="M18,58 A16,11 0 0 0 50,58 Z" fill="var(--gold)"/>
+          <path d="M150,58 A16,11 0 0 0 182,58 Z" fill="var(--gold)"/>
+        </g>
+      </svg>
+    </div>
+    <div class="equation-card">
+      <div class="equation mono" id="equationText">x + 4 = 12</div>
+    </div>
+    <div class="rule-strip mono" id="ruleStrip"></div>
+    <div class="working-card">
+      <div class="working-lines mono" id="workingLines"></div>
+    </div>
+    <div class="feedback-line" id="feedbackLine"></div>
+    <div class="hint-box hidden" id="hintBox"></div>
+
+    <div class="answer-area" id="answerAreaNumber">
+      <div class="answer-display mono" id="answerDisplay">0</div>
+    </div>
+    <div class="answer-area hidden" id="answerAreaSign">
+      <div class="sign-buttons">
+        <button class="sign-btn plus" id="signPlusBtn">＋</button>
+        <button class="sign-btn minus" id="signMinusBtn">－</button>
+      </div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-d="7">7</button><button class="key" data-d="8">8</button><button class="key" data-d="9">9</button>
+      <button class="key" data-d="4">4</button><button class="key" data-d="5">5</button><button class="key" data-d="6">6</button>
+      <button class="key" data-d="1">1</button><button class="key" data-d="2">2</button><button class="key" data-d="3">3</button>
+      <button class="key op" id="signKey">±</button><button class="key" data-d="0">0</button><button class="key op" id="backKey">⌫</button>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-ghost btn-small" id="ruleRefBtn">📖 見る</button>
+      <button class="btn btn-ghost" id="hintBtn">ヒント</button>
+      <button class="btn btn-primary" id="submitBtn">決定</button>
+    </div>
+  </main>
+
+  <!-- RESULT -->
+  <main class="screen hidden" id="screen-result">
+    <div id="levelupBanner" class="levelup-banner hidden"></div>
+    <div id="subUnlockBanner" class="levelup-banner hidden" style="background:linear-gradient(90deg,var(--coral),var(--gold));"></div>
+    <div class="result-title" id="resultStageTitle">ステージ1 完了</div>
+    <div class="result-score" id="resultScore">3 / 5</div>
+    <div class="result-stars" id="resultStars">★★☆</div>
+    <div class="result-msg" id="resultMsg"></div>
+    <div class="result-xp" id="resultXp">+30 XP</div>
+    <div class="action-row">
+      <button class="btn btn-ghost" id="retryBtn">もう一度</button>
+      <button class="btn btn-primary" id="homeBtn">ステージ一覧へ</button>
+    </div>
+  </main>
+
+  <!-- RULEBOOK -->
+  <main class="screen hidden" id="screen-rulebook">
+    <div class="quiz-top" style="margin-bottom:10px;">
+      <button class="back-btn" id="rbBackBtn">← もどる</button>
+      <div style="font-size:13px;color:var(--text-muted);">解き方図鑑</div>
+    </div>
+    <div id="rbContent"></div>
+  </main>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-icon" id="sheetIcon">⇄</div>
+    <div class="sheet-name" id="sheetName"></div>
+    <div class="sheet-short" id="sheetShort"></div>
+    <div class="sheet-detail" id="sheetDetail"></div>
+    <button class="btn btn-primary sheet-close" id="sheetClose">閉じる</button>
+  </div>
+
+</div>
+
+<script>
+/* ============ generic helpers ============ */
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function nonZero(a,b){let v=0; while(v===0) v=randInt(a,b); return v;}
+function fmtOp(n){ return n>=0 ? `+ ${n}` : `- ${Math.abs(n)}`; }
+function fmtOpDiv(n,div){ const v=(Math.abs(n)/div).toFixed(1); return n>=0?`+ ${v}`:`- ${v}`; }
+function coeffStr(n){ if(n===1) return 'x'; if(n===-1) return '-x'; return `${n}x`; }
+function termStr(n, v){ if(n===1) return v; if(n===-1) return '-'+v; return `${n}${v}`; }
+function coeffStrDiv(n,div){ const v=(n/div).toFixed(1); return `${v}x`; }
+function coeffPick(min,max){
+  if(Math.random()<0.22) return -1;
+  let v=nonZero(min,max);
+  while(Math.abs(v)===1) v=nonZero(min,max);
+  return v;
+}
+function exprStr(coef,cst){
+  if(coef===0) return `${cst}`;
+  const cp = coeffStr(coef);
+  if(cst===0) return cp;
+  return `${cp} ${fmtOp(cst)}`;
+}
+function sfSigned(n){ return n>=0?`+${n}`:`${n}`; }
+function sfTerm(n){ return n>=0?`${n}`:`(${n})`; }
+
+/* ============ blank-template authoring helpers ============ */
+function T(text){ return {text}; }
+function BN(value, format){ return {blank:{type:'number', value, format}}; }
+function BS(value){ return {blank:{type:'sign', value}}; } // value: '+' or '-'
+function R(idx){ return {ref:idx}; }
+function signGlyph(v){ return v==='-' ? '−' : '+'; }
+function formatBlank(b){
+  if(b.type==='sign') return signGlyph(b.value);
+  return b.format ? b.format(b.value) : `${b.value}`;
+}
+function flattenBlanks(lines){
+  const blanks=[];
+  lines.forEach(line=>line.forEach(seg=>{ if(seg.blank){ seg.idx=blanks.length; blanks.push(seg.blank); } }));
+  return blanks;
+}
+function renderLinesHTML(lines, blanks, revealedCount, liveContent){
+  return lines.map(line=>line.map(seg=>{
+    if(seg.text!==undefined) return seg.text;
+    if(seg.ref!==undefined){
+      return seg.ref < revealedCount ? `<span class="blank-filled">${formatBlank(blanks[seg.ref])}</span>` : `<span class="blank-pending">▢</span>`;
+    }
+    if(seg.idx!==undefined){
+      if(seg.idx < revealedCount) return `<span class="blank-filled">${formatBlank(blanks[seg.idx])}</span>`;
+      if(seg.idx === revealedCount && liveContent!=null) return `<span class="blank-active">${liveContent}</span>`;
+      return `<span class="blank-pending">▢</span>`;
+    }
+    return '';
+  }).join('')).join('<br>');
+}
+
+/* ============ rule data (all units) ============ */
+const RULES = {
+  sf_m1:{cat:'main', unit:'seifu', icon:'(+)+(+)', name:'同符号の加法',
+      formula:'(+a)+(+b) = +(a+b)\n(−a)+(−b) = −(a+b)', sample:'(+4)+(+7) = +11'},
+  sf_m2:{cat:'main', unit:'seifu', icon:'(+)+(−)', name:'異符号の加法',
+      formula:'a>b: (+a)+(−b) = +(a−b)\na<b: (+a)+(−b) = −(b−a)', sample:'(+9)+(−4) = +5'},
+  sf_m3:{cat:'main', unit:'seifu', icon:'a−b', name:'減法をたし算に直す',
+      formula:'a − b = a + (−b)', sample:'5 − (−8) = 5 + 8 = 13'},
+  sf_m4:{cat:'main', unit:'seifu', icon:'×÷', name:'乗法・除法の符号',
+      formula:'(+a)×(+b)=+(ab)  (−a)×(−b)=+(ab)\n(+a)×(−b)=−(ab)  (−a)×(+b)=−(ab)', sample:'(−3)×(+5) = −15'},
+  sf_m5:{cat:'main', unit:'seifu', icon:'a−b+c', name:'加減の混じった計算',
+      formula:'a − b + c = a + (−b) + c', sample:'3 − (−5) + (−2) = 6'},
+  sf_s1:{cat:'sub', unit:'seifu', icon:'|a|', name:'絶対値の意味',
+      formula:'|+a| = a    |−a| = a', sample:'|−7| = 7'},
+  sf_s2:{cat:'sub', unit:'seifu', icon:'÷=×', name:'わり算は逆数のかけ算',
+      formula:'a ÷ b = a × (1/b)', sample:'12 ÷ 4 = 12 × (1/4) = 3'},
+
+  mj_m1:{cat:'main', unit:'moji', icon:'x+x', name:'同類項をまとめる',
+      formula:'a x + b x = (a+b) x', sample:'3x + 5x = 8x'},
+  mj_m2:{cat:'main', unit:'moji', icon:'(+)', name:'1次式の加法',
+      formula:'(a x+b)+(c x+d) = (a+c)x+(b+d)', sample:'(2x+3)+(4x−1) = 6x+2'},
+  mj_m3:{cat:'main', unit:'moji', icon:'(−)', name:'1次式の減法',
+      formula:'(a x+b)−(c x+d) = (a−c)x+(b−d)', sample:'(5x+2)−(3x+7) = 2x−5'},
+  mj_m4:{cat:'main', unit:'moji', icon:'a( )', name:'1次式と数のかけ算',
+      formula:'a(b x + c) = ab x + ac', sample:'3(2x+4) = 6x+12'},
+  mj_m5:{cat:'main', unit:'moji', icon:'( )÷a', name:'1次式を数でわる',
+      formula:'(a x + b) ÷ c = (a÷c)x + (b÷c)', sample:'(6x+9) ÷ 3 = 2x+3'},
+  mj_m6:{cat:'main', unit:'moji', icon:'2( )', name:'かっこが2つある式の整理',
+      formula:'a(bx+c)+d(ex+f) = (ab+de)x+(ac+df)', sample:'2(x+3)+3(2x−1) = 8x+3'},
+  mj_s1:{cat:'sub', unit:'moji', icon:'1x', name:'係数が1・-1のときの書き方',
+      formula:'1x = x    −1x = −x', sample:'−1x + 4 = −x + 4'},
+  mj_s2:{cat:'sub', unit:'moji', icon:'-( )', name:'かっこの前が－のとき',
+      formula:'−(c x + d) = −c x − d', sample:'−(3x+2) = −3x−2'},
+
+  eq_m1:{cat:'main', unit:'houteishiki', icon:'⇄', name:'移項(たし算・ひき算)',
+      formula:'x + a = b  ⟹  x = b − a', sample:'x + 5 = 12 ⟹ x = 12 − 5 = 7'},
+  eq_m2:{cat:'main', unit:'houteishiki', icon:'÷', name:'両辺を同じ数でわる',
+      formula:'a x = b  ⟹  x = b ÷ a', sample:'3x = 15 ⟹ x = 15 ÷ 3 = 5'},
+  eq_m3:{cat:'main', unit:'houteishiki', icon:'①②', name:'2段階で解く(移項→わり算)',
+      formula:'a x + b = c  ⟹  a x = c − b  ⟹  x = (c − b) ÷ a', sample:'2x + 3 = 11 ⟹ 2x = 8 ⟹ x = 4'},
+  eq_m4:{cat:'main', unit:'houteishiki', icon:'⇄x', name:'xの項も移項できる',
+      formula:'a x + b = c x + d  ⟹  (a − c) x = d − b  ⟹  x = (d − b) ÷ (a − c)', sample:'5x + 2 = 2x + 11 ⟹ 3x = 9 ⟹ x = 3'},
+  eq_m5:{cat:'main', unit:'houteishiki', icon:'( )', name:'分配法則でかっこをはずす',
+      formula:'a(x + b) = a x + a b', sample:'3(x + 2) = 3x + 6'},
+  eq_m6:{cat:'main', unit:'houteishiki', icon:'.0/□', name:'小数・分数を整数にしてから解く',
+      formula:'0.a x + b = c ⟹(×10)⟹ a x + 10b = 10c\nx/p + b = c ⟹(×p)⟹ x + pb = pc', sample:'0.3x + 1 = 2.2 ⟹ 3x + 10 = 22'},
+  eq_s1:{cat:'sub', unit:'houteishiki', icon:'±', name:'符号の入れかわり',
+      formula:'□ + a = b ⟺ □ = b − a\n□ − a = b ⟺ □ = b + a', sample:'x + 4 = 9 ⟺ x = 9 − 4'},
+  eq_s2:{cat:'sub', unit:'houteishiki', icon:'1x', name:'係数が1・-1のときの書き方',
+      formula:'1x = x    −1x = −x', sample:'−x = 7 ⟺ x = −7'},
+  eq_s3:{cat:'sub', unit:'houteishiki', icon:'-( )', name:'かっこの前が－のとき',
+      formula:'−(x + a) = −x − a', sample:'−(x + 3) = −x − 3'},
+  eq_s4:{cat:'sub', unit:'houteishiki', icon:'✓', name:'答えの確かめ(検算)',
+      formula:'x = k ⟹ 左辺|x=k =? 右辺|x=k', sample:'x=7: 5+7=12, 右辺=12 ⟹ 一致'},
+
+  /* --- 式の計算(中2) --- */
+  s2_m1:{cat:'main', unit:'shiki2', icon:'x×x', name:'単項式の乗法',
+      formula:'a x × b x = ab x²\na x × b y = ab xy', sample:'3x × 4x = 12x²'},
+  s2_m2:{cat:'main', unit:'shiki2', icon:'x÷x', name:'単項式の除法',
+      formula:'a x² ÷ b x = (a÷b) x', sample:'12x² ÷ 3x = 4x'},
+  s2_m3:{cat:'main', unit:'shiki2', icon:'a( )', name:'単項式と多項式の乗法',
+      formula:'a(b x + c) = ab x² + ac x', sample:'2(3x + 4) = 6x² + 8x'},
+  s2_m4:{cat:'main', unit:'shiki2', icon:'( )÷x', name:'多項式を単項式でわる',
+      formula:'(a x² + b x) ÷ c x = (a÷c) x + (b÷c)', sample:'(6x² + 9x) ÷ 3x = 2x + 3'},
+  s2_m5:{cat:'main', unit:'shiki2', icon:'f(k)', name:'式の値(代入)',
+      formula:'x = k のとき a x + b = a×k + b', sample:'x=3: 2x+1 = 2×3+1 = 7'},
+  s2_s1:{cat:'sub', unit:'shiki2', icon:'x²', name:'指数の意味',
+      formula:'x × x = x²', sample:'x × x = x²'},
+
+  /* --- 連立方程式 --- */
+  rn_m1:{cat:'main', unit:'renritsu', icon:'代入', name:'代入法',
+      formula:'y = m x + k を p x + q y = r に代入\n⟹ (p+qm) x = r − qk', sample:'y=2x+1, 3x+y=11 ⟹ 5x=10'},
+  rn_m2:{cat:'main', unit:'renritsu', icon:'－', name:'加減法(そのまま)',
+      formula:'a x + b y = e\nc x + b y = f  ⟹ (a−c)x = e−f', sample:'2x+y=8, x+y=5 ⟹ x=3'},
+  rn_m3:{cat:'main', unit:'renritsu', icon:'k×', name:'加減法(片方を何倍か)',
+      formula:'一方をk倍して、もう一方と係数をそろえてから加減する', sample:'式①を2倍してから引く'},
+  rn_m4:{cat:'main', unit:'renritsu', icon:'k×k', name:'加減法(両方を何倍か)',
+      formula:'両方を別の数倍して、係数をそろえてから加減する', sample:'式①を3倍、式②を2倍してから引く'},
+  rn_s1:{cat:'sub', unit:'renritsu', icon:'=', name:'加減法は係数をそろえる',
+      formula:'消したい文字の係数を、同じ数にそろえる', sample:'yの係数を2と2にそろえる'},
+
+  /* --- 因数分解 --- */
+  fc_m1:{cat:'main', unit:'inzuu', icon:'a( )', name:'共通因数をくくり出す',
+      formula:'a x + a y = a(x + y)', sample:'6x + 9y = 3(2x + 3y)'},
+  fc_m2:{cat:'main', unit:'inzuu', icon:'( )( )', name:'x²+(a+b)x+ab の因数分解',
+      formula:'x² + (a+b)x + ab = (x+a)(x+b)', sample:'x²+5x+6 = (x+2)(x+3)'},
+  fc_m3:{cat:'main', unit:'inzuu', icon:'( )²', name:'平方の公式(+)',
+      formula:'x² + 2ax + a² = (x+a)²', sample:'x²+6x+9 = (x+3)²'},
+  fc_m4:{cat:'main', unit:'inzuu', icon:'( )²', name:'平方の公式(−)',
+      formula:'x² − 2ax + a² = (x−a)²', sample:'x²−6x+9 = (x−3)²'},
+  fc_m5:{cat:'main', unit:'inzuu', icon:'差', name:'2乗の差',
+      formula:'x² − a² = (x+a)(x−a)', sample:'x²−16 = (x+4)(x−4)'},
+  fc_s1:{cat:'sub', unit:'inzuu', icon:'a+b,ab', name:'2数の見つけ方',
+      formula:'a+b=(xの係数), a×b=(定数項)', sample:'和5・積6 ⟹ 2と3'},
+  fc_s2:{cat:'sub', unit:'inzuu', icon:'a²≥0', name:'2乗はいつも0以上',
+      formula:'a² ≥ 0 (どんなaでも)', sample:'(−3)² = 9'},
+
+  /* --- 平方根 --- */
+  hk_m1:{cat:'main', unit:'heihoukon', icon:'√×√', name:'√の乗法',
+      formula:'√a × √b = √(ab)', sample:'√2 × √8 = √16'},
+  hk_m2:{cat:'main', unit:'heihoukon', icon:'√÷√', name:'√の除法',
+      formula:'√a ÷ √b = √(a÷b)', sample:'√12 ÷ √3 = √4'},
+  hk_m3:{cat:'main', unit:'heihoukon', icon:'a√b', name:'根号の中を簡単にする',
+      formula:'√(a²b) = a√b', sample:'√12 = 2√3'},
+  hk_m4:{cat:'main', unit:'heihoukon', icon:'√+√', name:'同じ根号の加法・減法',
+      formula:'p√c + q√c = (p+q)√c', sample:'3√2 + 5√2 = 8√2'},
+  hk_m5:{cat:'main', unit:'heihoukon', icon:'1/√', name:'分母の有理化',
+      formula:'1/√a = √a/a', sample:'1/√3 = √3/3'},
+  hk_s1:{cat:'sub', unit:'heihoukon', icon:'√=√', name:'同じ根号どうしだけ計算できる',
+      formula:'√c どうしだけ足し引きできる(√cが違うと不可)', sample:'√2+√3 はこれ以上まとめられない'},
+
+  /* --- 二次方程式 --- */
+  nj_m1:{cat:'main', unit:'nijihou', icon:'x²=a', name:'x²=aの解き方',
+      formula:'x² = a  ⟹  x = ±√a', sample:'x²=9 ⟹ x=±3'},
+  nj_m2:{cat:'main', unit:'nijihou', icon:'(x+p)²', name:'(x+p)²=qの解き方',
+      formula:'(x+p)² = q  ⟹  x = −p ± √q', sample:'(x−2)²=9 ⟹ x=2±3'},
+  nj_m3:{cat:'main', unit:'nijihou', icon:'因数', name:'因数分解を利用する解法',
+      formula:'x²−(a+b)x+ab=0 ⟹ (x−a)(x−b)=0 ⟹ x=a,b', sample:'x²−5x+6=0 ⟹ x=2,3'},
+  nj_m4:{cat:'main', unit:'nijihou', icon:'公式', name:'解の公式',
+      formula:'ax²+bx+c=0 ⟹ x=(−b±√(b²−4ac))÷2a', sample:'x²−x−6=0 ⟹ x=3,−2'},
+  nj_s1:{cat:'sub', unit:'nijihou', icon:'±', name:'解は2つ(±)',
+      formula:'x²=a ⟹ x=+√a と x=−√a の2つ', sample:'x²=4 ⟹ x=2 と x=−2'},
+};
+
+/* ============ generators: 正負の数 ============ */
+function genSf1(){
+  const sign = Math.random()<0.5?1:-1;
+  const a = randInt(1,15), b=randInt(1,15);
+  const s = sign>0?'+':'-';
+  const answer = sign*(a+b);
+  const lines = [
+    [ T('⟹ '), BS(s), T(`(${a}+${b})`) ],
+    [ T('= '), R(0), BN(a+b) ]
+  ];
+  return { q:`(${s}${a}) + (${s}${b})`, answer, mainRule:'sf_m1', subRules:[], lines };
+}
+function genSf2(){
+  const a=randInt(1,15), b=randInt(1,15);
+  const posFirst = Math.random()<0.5;
+  const q = posFirst ? `(+${a}) + (-${b})` : `(-${a}) + (+${b})`;
+  const answer = posFirst ? a-b : b-a;
+  const resultSign = answer>=0 ? '+' : '-';
+  const magnitude = Math.abs(answer);
+  const big = Math.max(a,b), small = Math.min(a,b);
+  const lines = [
+    [ T('⟹ '), BS(resultSign), T(`(${big}-${small})`) ],
+    [ T('= '), R(0), BN(magnitude) ]
+  ];
+  return { q, answer, mainRule:'sf_m2', subRules:['sf_s1'], lines };
+}
+function genSf3(){
+  const a = randInt(-15,15);
+  const b = nonZero(-12,12);
+  const q = `${sfTerm(a)} − (${sfSigned(b)})`;
+  const answer = a-b;
+  const flipSign = (-b)>=0 ? '+' : '-';
+  const lines = [
+    [ T(`⟹ ${sfTerm(a)} + (`), BS(flipSign), T(`${Math.abs(b)})`) ],
+    [ T('= '), BN(answer) ]
+  ];
+  return { q, answer, mainRule:'sf_m3', subRules:[], lines };
+}
+function genSf4(){
+  const isDiv = Math.random()<0.5;
+  const sa = Math.random()<0.5?1:-1, sb = Math.random()<0.5?1:-1;
+  let a,b,answer,opSym;
+  if(!isDiv){ a=randInt(1,9); b=randInt(1,9); opSym='×'; answer = sa*sb*a*b; }
+  else { b=randInt(1,9); const xq=randInt(1,9); a=b*xq; opSym='÷'; answer = sa*sb*xq; }
+  const q = `(${sa>0?'+':'-'}${a}) ${opSym} (${sb>0?'+':'-'}${b})`;
+  const resultSign = (sa*sb)>0?'+':'-';
+  const magnitude = Math.abs(answer);
+  const lines = [
+    [ T('⟹ '), BS(resultSign), T(`(${a}${opSym}${b})`) ],
+    [ T('= '), R(0), BN(magnitude) ]
+  ];
+  return { q, answer, mainRule:'sf_m4', subRules: isDiv?['sf_s2']:[], lines };
+}
+function genSf5(){
+  const t1=nonZero(-9,9), t2=nonZero(-9,9), t3=nonZero(-9,9);
+  const op1=Math.random()<0.5?'+':'−', op2=Math.random()<0.5?'+':'−';
+  const q = `${sfTerm(t1)} ${op1} (${sfSigned(t2)}) ${op2} (${sfSigned(t3)})`;
+  const running = op1==='+' ? t1+t2 : t1-t2;
+  const final = op2==='+' ? running+t3 : running-t3;
+  const lines = [
+    [ T(`⟹ ${t1} ${op1==='+'?'+':'-'} ${t2} ${op2==='+'?'+':'-'} ${t3}`) ],
+    [ T('= '), BN(running), T(` ${op2==='+'?'+':'-'} ${t3}`) ],
+    [ T('= '), BN(final) ]
+  ];
+  return { q, answer:final, mainRule:'sf_m5', subRules:[], lines };
+}
+
+/* ============ generators: 文字式 ============ */
+function genMj1(){
+  const a=coeffPick(-9,9), b=coeffPick(-9,9);
+  const sndAbs = Math.abs(b)===1?'x':`${Math.abs(b)}x`;
+  const q = `${coeffStr(a)} ${b>=0?'+':'-'} ${sndAbs}`;
+  const sum=a+b;
+  const lines = [
+    [ T(`⟹ (${a} ${b>=0?'+':'-'} ${Math.abs(b)}) x`) ],
+    [ T('= '), BN(sum, coeffStr) ]
+  ];
+  return {
+    q, answer:{coef:sum,const:0}, mainRule:'mj_m1',
+    subRules: (Math.abs(a)===1||Math.abs(b)===1||Math.abs(sum)===1)?['mj_s1']:[], lines
+  };
+}
+function genMj2(){
+  const a=coeffPick(-9,9), c=coeffPick(-9,9);
+  const b=randInt(-9,9), d=randInt(-9,9);
+  const q = `(${exprStr(a,b)}) + (${exprStr(c,d)})`;
+  const coef=a+c, cst=b+d;
+  const lines = [
+    [ T(`⟹ (${a}+${c})x + (${b}+${d})`) ],
+    [ T('= '), BN(coef, coeffStr), T(' '), BN(cst, fmtOp) ]
+  ];
+  return {
+    q, answer:{coef,const:cst}, mainRule:'mj_m2',
+    subRules: (Math.abs(a)===1||Math.abs(c)===1)?['mj_s1']:[], lines
+  };
+}
+function genMj3(){
+  const a=coeffPick(-9,9), c=coeffPick(-9,9);
+  const b=randInt(-9,9), d=randInt(-9,9);
+  const q = `(${exprStr(a,b)}) − (${exprStr(c,d)})`;
+  const coef=a-c, cst=b-d;
+  const lines = [
+    [ T(`⟹ (${a}−(${c}))x + (${b}−(${d}))`) ],
+    [ T('= '), BN(coef, coeffStr), T(' '), BN(cst, fmtOp) ]
+  ];
+  return { q, answer:{coef,const:cst}, mainRule:'mj_m3', subRules:['mj_s2'], lines };
+}
+function genMj4(){
+  const a=coeffPick(-9,9);
+  const b=coeffPick(-9,9);
+  const c=randInt(-9,9);
+  const q = `${a}(${exprStr(b,c)})`;
+  const coef=a*b, cst=a*c;
+  const lines = [
+    [ T(`⟹ ${a}×${coeffStr(b)} + ${a}×${c<0?`(${c})`:c}`) ],
+    [ T('= '), BN(coef, coeffStr), T(' '), BN(cst, fmtOp) ]
+  ];
+  return {
+    q, answer:{coef,const:cst}, mainRule:'mj_m4',
+    subRules: a<0 ? ['mj_s2'] : (Math.abs(b)===1?['mj_s1']:[]), lines
+  };
+}
+function genMj5(){
+  let c = nonZero(-9,9); while(Math.abs(c)===1) c=nonZero(-9,9);
+  const coef = randInt(-9,9), cst = randInt(-9,9);
+  const a = coef*c, b = cst*c;
+  const q = `(${exprStr(a,b)}) ÷ ${c}`;
+  const lines = [
+    [ T(`⟹ ${a}÷${c} x + ${b}÷${c}`) ],
+    [ T('= '), BN(coef, coeffStr), T(' '), BN(cst, fmtOp) ]
+  ];
+  return {
+    q, answer:{coef,const:cst}, mainRule:'mj_m5',
+    subRules: Math.abs(coef)===1?['mj_s1']:[], lines
+  };
+}
+function genMj6(){
+  const a=coeffPick(-9,9), d=coeffPick(-9,9);
+  const b=coeffPick(-9,9), e=coeffPick(-9,9);
+  const c=randInt(-9,9), f=randInt(-9,9);
+  const q = `${a}(${exprStr(b,c)}) + ${d}(${exprStr(e,f)})`;
+  const coef = a*b+d*e, cst=a*c+d*f;
+  const lines = [
+    [ T(`⟹ (${a*b}+${d*e})x + (${a*c}+${d*f})`) ],
+    [ T('= '), BN(coef, coeffStr), T(' '), BN(cst, fmtOp) ]
+  ];
+  return {
+    q, answer:{coef,const:cst}, mainRule:'mj_m6',
+    subRules: (a<0||d<0)?['mj_s2']:[], lines
+  };
+}
+
+/* ============ generators: 一次方程式 ============ */
+function genEq1(){
+  const x = randInt(-20,20);
+  const a = nonZero(-15,15);
+  const b = x+a;
+  const flipSign = a>0 ? '-' : '+';
+  const lines = [
+    [ T(`⟹ x = ${b} `), BS(flipSign), T(` ${Math.abs(a)}`) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return { q:`x ${fmtOp(a)} = ${b}`, answer:x, mainRule:'eq_m1', subRules:['eq_s1'], lines };
+}
+function genEq2(){
+  const a = coeffPick(-9,9);
+  const x = randInt(-12,12);
+  const b = a*x;
+  const lines = [
+    [ T(`⟹ x = ${b} ÷ (${a})`) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return { q:`${coeffStr(a)} = ${b}`, answer:x, mainRule:'eq_m2', subRules: Math.abs(a)===1?['eq_s2']:[], lines };
+}
+function genEq3(){
+  const a = coeffPick(-9,9);
+  const x = randInt(-12,12);
+  const b = nonZero(-15,15);
+  const c = a*x+b;
+  const lines = [
+    [ T(`⟹ ${coeffStr(a)} = `), BN(c-b) ],
+    [ T('x = '), R(0), T(` ÷ (${a})`) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return { q:`${coeffStr(a)} ${fmtOp(b)} = ${c}`, answer:x, mainRule:'eq_m3', subRules: Math.abs(a)===1?['eq_s2']:[], lines };
+}
+function genEq4(){
+  let a=coeffPick(-9,9), c=coeffPick(-9,9);
+  while(c===a) c=coeffPick(-9,9);
+  const x=randInt(-12,12);
+  const b=randInt(-15,15);
+  const d=(a-c)*x+b;
+  const lines = [
+    [ BN(a-c, coeffStr), T(' = '), BN(d-b) ],
+    [ T('x = '), R(1), T(' ÷ ('), R(0), T(')') ],
+    [ T('x = '), BN(x) ]
+  ];
+  return {
+    q:`${coeffStr(a)} ${fmtOp(b)} = ${coeffStr(c)} ${fmtOp(d)}`, answer:x, mainRule:'eq_m4',
+    subRules: (Math.abs(a)===1||Math.abs(c)===1) ? ['eq_s2'] : [], lines
+  };
+}
+function genEq5(){
+  const a = coeffPick(-9,9);
+  const x=randInt(-12,12);
+  const b=nonZero(-12,12);
+  const c=a*(x+b);
+  const lines = [
+    [ T(`⟹ ${coeffStr(a)} `), BN(a*b, fmtOp), T(` = ${c}`) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return {
+    q:`${a}(x ${fmtOp(b)}) = ${c}`, answer:x, mainRule:'eq_m5',
+    subRules: a<0 ? ['eq_s3'] : (Math.abs(a)===1?['eq_s2']:[]), lines
+  };
+}
+function genEq6(){
+  if(Math.random()<0.5){
+    let a=nonZero(-9,9), c=nonZero(-9,9);
+    while(c===a || Math.abs(a)===1 || Math.abs(c)===1){ a=nonZero(-9,9); c=nonZero(-9,9); }
+    const x=randInt(-9,9);
+    const b=randInt(-9,9);
+    const d=(a-c)*x+b;
+    const lines = [
+      [ T(`⟹(×10)⟹ ${coeffStr(a)} ${fmtOp(b)} = ${coeffStr(c)} ${fmtOp(d)}`) ],
+      [ T('x = '), BN(x) ]
+    ];
+    return {
+      q:`${coeffStrDiv(a,10)} ${fmtOpDiv(b,10)} = ${coeffStrDiv(c,10)} ${fmtOpDiv(d,10)}`, answer:x, mainRule:'eq_m6', subRules:[], lines
+    };
+  } else {
+    const p = [2,3,4,5,6][randInt(0,4)];
+    const k = nonZero(-8,8);
+    const x = p*k;
+    const b = randInt(-12,12);
+    const c = k+b;
+    const lines = [
+      [ T(`⟹(×${p})⟹ x ${fmtOp(b*p)} = ${c*p}`) ],
+      [ T('x = '), BN(x) ]
+    ];
+    return { q:`x/${p} ${fmtOp(b)} = ${c}`, answer:x, mainRule:'eq_m6', subRules:[], lines };
+  }
+}
+
+/* ============ generators: 式の計算(中2) ============ */
+function genS2_1(){
+  const sameVar = Math.random()<0.5;
+  const a = coeffPick(-9,9), b = coeffPick(-9,9);
+  const prod = a*b;
+  if(sameVar){
+    const q = `${termStr(a,'x')} × ${termStr(b,'x')}`;
+    const lines = [ [ BN(prod, n=>`${n}x²`) ] ];
+    return { q, answer:prod, mainRule:'s2_m1', subRules:['s2_s1'], lines };
+  } else {
+    const q = `${termStr(a,'x')} × ${termStr(b,'y')}`;
+    const lines = [ [ BN(prod, n=>`${n}xy`) ] ];
+    return { q, answer:prod, mainRule:'s2_m1', subRules:[], lines };
+  }
+}
+function genS2_2(){
+  const sameVar = Math.random()<0.5;
+  let b = nonZero(-9,9); while(Math.abs(b)===1) b=nonZero(-9,9);
+  const k = coeffPick(-9,9);
+  const a = k*b;
+  if(sameVar){
+    const q = `(${a}x²) ÷ (${b}x)`;
+    const lines = [ [ BN(k, coeffStr) ] ];
+    return { q, answer:k, mainRule:'s2_m2', subRules:[], lines };
+  } else {
+    const q = `(${a}xy) ÷ (${b}x)`;
+    const lines = [ [ BN(k, n=>termStr(n,'y')) ] ];
+    return { q, answer:k, mainRule:'s2_m2', subRules:[], lines };
+  }
+}
+function genS2_3(){
+  const a = coeffPick(-9,9), b = coeffPick(-9,9), c = randInt(-9,9);
+  const q = `${a}(${coeffStr(b)} ${fmtOp(c)})`;
+  const coefX2 = a*b, coefX = a*c;
+  const lines = [ [ BN(coefX2, n=>`${n}x²`), T(' '), BN(coefX, fmtOp) ] ];
+  return { q, answer:{coef:coefX2,const:coefX}, mainRule:'s2_m3', subRules:[], lines };
+}
+function genS2_4(){
+  let c = nonZero(-9,9); while(Math.abs(c)===1) c=nonZero(-9,9);
+  const coefX = randInt(-9,9), constR = randInt(-9,9);
+  const a = coefX*c, b = constR*c;
+  const q = `(${a}x² ${fmtOp(b)}x) ÷ ${c}x`;
+  const lines = [ [ BN(coefX, coeffStr), T(' '), BN(constR, fmtOp) ] ];
+  return { q, answer:{coef:coefX,const:constR}, mainRule:'s2_m4', subRules:[], lines };
+}
+function genS2_5(){
+  const a = coeffPick(-9,9), b = randInt(-9,9);
+  const xval = randInt(-9,9);
+  const q = `x = ${xval} のとき、${coeffStr(a)} ${fmtOp(b)} の値`;
+  const answer = a*xval+b;
+  const lines = [ [ BN(answer) ] ];
+  return { q, answer, mainRule:'s2_m5', subRules:[], lines };
+}
+
+/* ============ generators: 連立方程式 ============ */
+function genRn1(){
+  const m = nonZero(-6,6), k = randInt(-9,9);
+  const x0 = randInt(-9,9);
+  const y0 = m*x0+k;
+  const p = coeffPick(-9,9), cy = nonZero(-6,6);
+  const rhs2 = p*x0+cy*y0;
+  const q = `y = ${termStr(m,'x')} ${fmtOp(k)}\n${termStr(p,'x')} ${fmtOp(cy)}y = ${rhs2}`;
+  const combinedCoef = p+cy*m, combinedConst = rhs2-cy*k;
+  const lines = [
+    [ BN(combinedCoef, n=>termStr(n,'x')), T(' = '), BN(combinedConst) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m1', subRules:[], lines };
+}
+function genRn2(){
+  let a=coeffPick(-9,9), c=coeffPick(-9,9); while(c===a) c=coeffPick(-9,9);
+  const b = nonZero(-6,6);
+  const x0 = randInt(-9,9), y0 = randInt(-9,9);
+  const e = a*x0+b*y0, f = c*x0+b*y0;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${e}\n${termStr(c,'x')} ${fmtOp(b)}y = ${f}`;
+  const lines = [
+    [ BN(a-c, n=>termStr(n,'x')), T(' = '), BN(e-f) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m2', subRules:[], lines };
+}
+function genRn3(){
+  const k = [2,3][randInt(0,1)];
+  const b = nonZero(-6,6);
+  let a=coeffPick(-9,9), c=coeffPick(-9,9);
+  while(a*k-c===0){ a=coeffPick(-9,9); c=coeffPick(-9,9); }
+  const x0 = randInt(-9,9), y0 = randInt(-9,9);
+  const e = a*x0+b*y0, f = c*x0+(b*k)*y0;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${e}\n${termStr(c,'x')} ${fmtOp(b*k)}y = ${f}`;
+  const lines = [
+    [ T('式①を'), BN(k), T('倍する') ],
+    [ BN(a*k-c, n=>termStr(n,'x')), T(' = '), BN(e*k-f) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m3', subRules:['rn_s1'], lines, isComboUse:true };
+}
+function genRn4(){
+  let k1=[2,3,4][randInt(0,2)], k2=[2,3,4][randInt(0,2)];
+  while(k2===k1) k2=[2,3,4][randInt(0,2)];
+  const base = randInt(1,3);
+  const m = k1*k2*base;
+  const a = m/k1, c = m/k2;
+  let b=nonZero(-6,6), d=nonZero(-6,6);
+  while(b*k1-d*k2===0){ b=nonZero(-6,6); d=nonZero(-6,6); }
+  const x0 = randInt(-9,9), y0 = randInt(-9,9);
+  const e = a*x0+b*y0, f = c*x0+d*y0;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${e}\n${termStr(c,'x')} ${fmtOp(d)}y = ${f}`;
+  const lines = [
+    [ T('式①を'), BN(k1), T('倍、式②を'), BN(k2), T('倍する') ],
+    [ BN(b*k1-d*k2, n=>termStr(n,'y')), T(' = '), BN(e*k1-f*k2) ],
+    [ T('y = '), BN(y0) ],
+    [ T('x = '), BN(x0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m4', subRules:['rn_s1'], lines };
+}
+
+/* ============ generators: 因数分解 ============ */
+function genFc1(){
+  const k = randInt(2,9), p = nonZero(-6,6), q2 = nonZero(-6,6);
+  const dispA = k*p, dispB = k*q2;
+  const q = `${coeffStr(dispA)} ${fmtOp(dispB)}y`;
+  const lines = [
+    [ T('⟹ '), BN(k), T('('), BN(p, coeffStr), T(` ${q2>=0?'+':'-'} `), BN(Math.abs(q2), n=>`${n}y`), T(')') ]
+  ];
+  return { q, answer:{k,p,q:q2}, mainRule:'fc_m1', subRules:[], lines };
+}
+function genFc2(){
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const a=Math.min(rawA,rawB), b=Math.max(rawA,rawB);
+  const SUM=a+b, PROD=a*b;
+  const q = `x² ${fmtOp(SUM)}x ${fmtOp(PROD)}`;
+  const lines = [
+    [ T('(x '), T(a>=0?'+ ':'− '), BN(Math.abs(a)), T(')(x '), T(b>=0?'+ ':'− '), BN(Math.abs(b)), T(')') ]
+  ];
+  return { q, answer:{a,b}, mainRule:'fc_m2', subRules:['fc_s1'], lines };
+}
+function genFc3(){
+  const a = nonZero(1,9);
+  const q = `x² ${fmtOp(2*a)}x ${fmtOp(a*a)}`;
+  const lines = [ [ T('(x + '), BN(a), T(')²') ] ];
+  return { q, answer:a, mainRule:'fc_m3', subRules:['fc_s2'], lines };
+}
+function genFc4(){
+  const a = nonZero(1,9);
+  const q = `x² ${fmtOp(-2*a)}x ${fmtOp(a*a)}`;
+  const lines = [ [ T('(x − '), BN(a), T(')²') ] ];
+  return { q, answer:a, mainRule:'fc_m4', subRules:['fc_s2'], lines };
+}
+function genFc5(){
+  const a = randInt(2,12);
+  const q = `x² ${fmtOp(-(a*a))}`;
+  const lines = [ [ T('(x + '), BN(a), T(')(x − '), R(0), T(')') ] ];
+  return { q, answer:a, mainRule:'fc_m5', subRules:[], lines };
+}
+
+/* ============ generators: 平方根 ============ */
+function genHk1(){
+  const a = randInt(2,9), b = randInt(2,9);
+  const q = `√${a} × √${b}`;
+  const lines = [ [ T('√'), BN(a*b) ] ];
+  return { q, answer:a*b, mainRule:'hk_m1', subRules:[], lines };
+}
+function genHk2(){
+  const b = randInt(2,9), k = randInt(2,9);
+  const a = b*k;
+  const q = `√${a} ÷ √${b}`;
+  const lines = [ [ T('√'), BN(k) ] ];
+  return { q, answer:k, mainRule:'hk_m2', subRules:[], lines };
+}
+function genHk3(){
+  const outA = randInt(2,6);
+  const inB = [2,3,5,6,7,10][randInt(0,5)];
+  const inside = outA*outA*inB;
+  const q = `√${inside}`;
+  const lines = [ [ BN(outA), T('√'), BN(inB) ] ];
+  return { q, answer:{outA,inB}, mainRule:'hk_m3', subRules:[], lines };
+}
+function genHk4(){
+  const c = [2,3,5,6,7,10][randInt(0,5)];
+  const p = nonZero(-9,9), qy = nonZero(-9,9);
+  const secondTerm = Math.abs(qy)===1 ? `√${c}` : `${Math.abs(qy)}√${c}`;
+  const q = `${termStr(p,'√'+c)} ${qy>=0?'+':'-'} ${secondTerm}`;
+  const sum = p+qy;
+  const lines = [ [ BN(sum, n=>termStr(n,'√'+c)) ] ];
+  return { q, answer:sum, mainRule:'hk_m4', subRules:['hk_s1'], lines };
+}
+function genHk5(){
+  const a = randInt(2,9);
+  const q = `1/√${a}`;
+  const lines = [ [ T('√'), BN(a), T('/'), R(0) ] ];
+  return { q, answer:a, mainRule:'hk_m5', subRules:[], lines };
+}
+
+/* ============ generators: 二次方程式 ============ */
+function genNj1(){
+  const a = randInt(2,15);
+  const q = `x² = ${a}`;
+  const lines = [ [ T('x = ±√'), BN(a) ] ];
+  return { q, answer:a, mainRule:'nj_m1', subRules:['nj_s1'], lines };
+}
+function genNj2(){
+  const p = nonZero(-9,9), qc = randInt(2,20);
+  const q = `(x ${fmtOp(p)})² = ${qc}`;
+  const lines = [ [ T('x = '), BN(-p), T(' ± √'), BN(qc) ] ];
+  return { q, answer:{shift:-p, under:qc}, mainRule:'nj_m2', subRules:[], lines };
+}
+function genNj3(){
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const a=Math.min(rawA,rawB), b=Math.max(rawA,rawB);
+  const SUM=a+b, PROD=a*b;
+  const q = `x² ${fmtOp(-SUM)}x ${fmtOp(PROD)} = 0`;
+  const lines = [ [ T('x = '), BN(a), T(', '), BN(b) ] ];
+  return { q, answer:{a,b}, mainRule:'nj_m3', subRules:[], lines, isCombo:true };
+}
+function genNj4(){
+  let rawR1=randInt(-6,6), rawR2=randInt(-6,6);
+  while(rawR1===rawR2) rawR2=randInt(-6,6);
+  const r1=Math.min(rawR1,rawR2), r2=Math.max(rawR1,rawR2);
+  const A = randInt(1,4);
+  const Bc = -A*(r1+r2), Cc = A*r1*r2;
+  const q = `${A}x² ${fmtOp(Bc)}x ${fmtOp(Cc)} = 0`;
+  const D = Bc*Bc-4*A*Cc;
+  const sqrtD = A*Math.abs(r1-r2);
+  const lines = [
+    [ T('D = '), BN(D) ],
+    [ T('√D = '), BN(sqrtD) ],
+    [ T('x = '), BN(r1), T(', '), BN(r2) ]
+  ];
+  return { q, answer:{r1,r2}, mainRule:'nj_m4', subRules:[], lines };
+}
+
+/* ============ unit / stage definitions ============ */
+const GRADES = [
+  {grade:1, label:'中学1年'},
+  {grade:2, label:'中学2年'},
+  {grade:3, label:'中学3年'},
+];
+const UNITS = [
+  {id:'seifu', title:'正負の数', subtitle:'負の数の計算に慣れよう', grade:1, icon:'±'},
+  {id:'moji', title:'文字式の計算', subtitle:'式を整理するコツをつかもう', grade:1, icon:'x'},
+  {id:'houteishiki', title:'一次方程式', subtitle:'式のつりあいを保ちながら解こう', grade:1, icon:'='},
+  {id:'shiki2', title:'式の計算(中2)', subtitle:'単項式・多項式の計算を広げよう', grade:2, icon:'x²'},
+  {id:'renritsu', title:'連立方程式', subtitle:'2つの式を組み合わせて解こう', grade:2, icon:'x,y'},
+  {id:'inzuu', title:'因数分解', subtitle:'式を積の形にほどこう', grade:3, icon:'( )'},
+  {id:'heihoukon', title:'平方根', subtitle:'√の扱いに慣れよう', grade:3, icon:'√'},
+  {id:'nijihou', title:'二次方程式', subtitle:'これまでの解き方を総動員しよう', grade:3, icon:'x²='},
+];
+const STAGE_DEFS = {
+  seifu:[
+    {ruleId:'sf_m1', title:'同符号の数の加法', example:'(+a)+(+b) / (−a)+(−b)', gen:genSf1},
+    {ruleId:'sf_m2', title:'異符号の数の加法', example:'(+a)+(−b)', gen:genSf2},
+    {ruleId:'sf_m3', title:'減法をたし算に直す', example:'a − b = a + (−b)', gen:genSf3},
+    {ruleId:'sf_m4', title:'乗法・除法の符号', example:'(±a)×(±b) / (±a)÷(±b)', gen:genSf4},
+    {ruleId:'sf_m5', title:'加減の混じった計算', example:'a − b + c', gen:genSf5},
+  ],
+  moji:[
+    {ruleId:'mj_m1', title:'同類項をまとめる', example:'a x + b x', gen:genMj1},
+    {ruleId:'mj_m2', title:'1次式の加法', example:'(a x+b)+(c x+d)', gen:genMj2},
+    {ruleId:'mj_m3', title:'1次式の減法', example:'(a x+b)−(c x+d)', gen:genMj3},
+    {ruleId:'mj_m4', title:'1次式と数のかけ算', example:'a(b x + c)', gen:genMj4},
+    {ruleId:'mj_m5', title:'1次式を数でわる', example:'(a x + b) ÷ c', gen:genMj5},
+    {ruleId:'mj_m6', title:'かっこが2つある式の整理', example:'a(bx+c)+d(ex+f)', gen:genMj6, isCombo:true},
+  ],
+  houteishiki:[
+    {ruleId:'eq_m1', title:'たし算・ひき算の方程式', example:'x + a = b', gen:genEq1},
+    {ruleId:'eq_m2', title:'かけ算・わり算の方程式', example:'a x = b', gen:genEq2},
+    {ruleId:'eq_m3', title:'2段階で解く方程式', example:'a x + b = c', gen:genEq3, isCombo:true},
+    {ruleId:'eq_m4', title:'xが両辺にある方程式', example:'a x + b = c x + d', gen:genEq4},
+    {ruleId:'eq_m5', title:'かっこをはずす方程式', example:'a(x + b) = c', gen:genEq5},
+    {ruleId:'eq_m6', title:'小数・分数をふくむ方程式', example:'0.3x+1=0.5x-1 / x/4+2=5', gen:genEq6},
+  ],
+  shiki2:[
+    {ruleId:'s2_m1', title:'単項式の乗法', example:'a x × b x / a x × b y', gen:genS2_1},
+    {ruleId:'s2_m2', title:'単項式の除法', example:'a x² ÷ b x', gen:genS2_2},
+    {ruleId:'s2_m3', title:'単項式と多項式の乗法', example:'a(b x + c)', gen:genS2_3},
+    {ruleId:'s2_m4', title:'多項式を単項式でわる', example:'(a x² + b x) ÷ c x', gen:genS2_4},
+    {ruleId:'s2_m5', title:'式の値(代入)', example:'x=kのとき a x + b', gen:genS2_5},
+  ],
+  renritsu:[
+    {ruleId:'rn_m1', title:'代入法', example:'y=mx+k と px+qy=r', gen:genRn1},
+    {ruleId:'rn_m2', title:'加減法(そのまま)', example:'ax+by=e, cx+by=f', gen:genRn2},
+    {ruleId:'rn_m3', title:'加減法(片方を何倍か)', example:'式①をk倍してそろえる', gen:genRn3, isCombo:true},
+    {ruleId:'rn_m4', title:'加減法(両方を何倍か)', example:'式①②を別の数倍してそろえる', gen:genRn4, isCombo:true},
+  ],
+  inzuu:[
+    {ruleId:'fc_m1', title:'共通因数をくくり出す', example:'a x + a y', gen:genFc1},
+    {ruleId:'fc_m2', title:'x²+(a+b)x+ab の因数分解', example:'x²+(a+b)x+ab', gen:genFc2},
+    {ruleId:'fc_m3', title:'平方の公式(+)', example:'x²+2ax+a²', gen:genFc3},
+    {ruleId:'fc_m4', title:'平方の公式(−)', example:'x²−2ax+a²', gen:genFc4},
+    {ruleId:'fc_m5', title:'2乗の差', example:'x²−a²', gen:genFc5},
+  ],
+  heihoukon:[
+    {ruleId:'hk_m1', title:'√の乗法', example:'√a × √b', gen:genHk1},
+    {ruleId:'hk_m2', title:'√の除法', example:'√a ÷ √b', gen:genHk2},
+    {ruleId:'hk_m3', title:'根号の中を簡単にする', example:'√(a²b)', gen:genHk3},
+    {ruleId:'hk_m4', title:'同じ根号の加法・減法', example:'p√c + q√c', gen:genHk4},
+    {ruleId:'hk_m5', title:'分母の有理化', example:'1/√a', gen:genHk5},
+  ],
+  nijihou:[
+    {ruleId:'nj_m1', title:'x²=aの解き方', example:'x² = a', gen:genNj1},
+    {ruleId:'nj_m2', title:'(x+p)²=qの解き方', example:'(x+p)² = q', gen:genNj2},
+    {ruleId:'nj_m3', title:'因数分解を利用する解法', example:'x²+(a+b)x+ab=0', gen:genNj3, isCombo:true},
+    {ruleId:'nj_m4', title:'解の公式', example:'a x²+b x+c=0', gen:genNj4, isCombo:true},
+  ],
+};
+const SUB_RULES_BY_UNIT = {
+  seifu:['sf_s1','sf_s2'],
+  moji:['mj_s1','mj_s2'],
+  houteishiki:['eq_s1','eq_s2','eq_s3','eq_s4'],
+  shiki2:['s2_s1'],
+  renritsu:['rn_s1'],
+  inzuu:['fc_s1','fc_s2'],
+  heihoukon:['hk_s1'],
+  nijihou:['nj_s1'],
+};
+
+/* ============ storage / progress ============ */
+function defaultProgress(){
+  const stageStars={};
+  Object.keys(STAGE_DEFS).forEach(uid=>{ stageStars[uid] = STAGE_DEFS[uid].map(()=>0); });
+  return {
+    level:1, xp:0, xpNeeded:50, totalCorrect:0, totalAnswered:0, dayStreak:0, lastDate:null,
+    todayCount:0, todayDate:null,
+    stageStars, acquiredMain:{}, acquiredSub:{}, mastery:{}
+  };
+}
+function normalizeProgress(p){
+  if(!p.stageStars) p.stageStars = {};
+  Object.keys(STAGE_DEFS).forEach(uid=>{
+    if(!p.stageStars[uid]) p.stageStars[uid] = STAGE_DEFS[uid].map(()=>0);
+  });
+  if(!p.acquiredMain) p.acquiredMain = {};
+  if(!p.acquiredSub) p.acquiredSub = {};
+  if(!p.mastery) p.mastery = {};
+  if(typeof p.todayCount !== 'number') p.todayCount = 0;
+  if(!p.todayDate) p.todayDate = null;
+  return p;
+}
+function applyTodayCount(){
+  const today = todayStr();
+  if(progress.todayDate !== today){
+    progress.todayDate = today;
+    progress.todayCount = 0;
+  }
+}
+function bumpMastery(ruleId, amount){
+  const before = progress.mastery[ruleId]||0;
+  progress.mastery[ruleId] = Math.min(100, before+amount);
+  return progress.mastery[ruleId]-before;
+}
+function todayStr(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+async function loadProgress(){
+  try{
+    const res = await window.storage.get('progress', false);
+    if(res && res.value) return normalizeProgress({...defaultProgress(), ...JSON.parse(res.value)});
+  }catch(e){}
+  return defaultProgress();
+}
+async function saveProgress(){
+  try{ await window.storage.set('progress', JSON.stringify(progress), false); }catch(e){}
+}
+
+let progress = null;
+let sessionXp = 0;
+let leveledUpThisSession = false;
+let subUnlockedThisSession = null;
+
+function applyDayStreak(){
+  const today = todayStr();
+  if(progress.lastDate !== today){
+    if(progress.lastDate){
+      const diff = Math.round((new Date(today) - new Date(progress.lastDate)) / 86400000);
+      progress.dayStreak = (diff === 1) ? progress.dayStreak + 1 : 1;
+    } else {
+      progress.dayStreak = 1;
+    }
+    progress.lastDate = today;
+  }
+}
+function awardXp(n){
+  sessionXp += n;
+  progress.xp += n;
+  while(progress.xp >= progress.xpNeeded){
+    progress.xp -= progress.xpNeeded;
+    progress.level += 1;
+    progress.xpNeeded = 50 + (progress.level-1)*15;
+    leveledUpThisSession = true;
+  }
+}
+function acquiredCount(){ return Object.keys(progress.acquiredMain).length + Object.keys(progress.acquiredSub).length; }
+function totalRuleCount(){ return Object.keys(RULES).length; }
+
+/* ============ sheet / modal ============ */
+function openSheet(rule){
+  document.getElementById('sheetIcon').textContent = rule.icon;
+  document.getElementById('sheetName').textContent = rule.name;
+  document.getElementById('sheetShort').innerHTML = rule.formula.replace(/\n/g,'<br>');
+  document.getElementById('sheetDetail').innerHTML = rule.sample.replace(/\n/g,'<br>');
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheetBackdrop').classList.add('open');
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sheetBackdrop').classList.remove('open');
+}
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+document.getElementById('sheetBackdrop').addEventListener('click', closeSheet);
+
+/* ============ home / unit rendering ============ */
+function renderStatusBar(){
+  document.getElementById('lvBadge').textContent = `Lv.${progress.level}`;
+  document.getElementById('xpFill').style.width = `${Math.min(100,(progress.xp/progress.xpNeeded)*100)}%`;
+  document.getElementById('streakBadge').textContent = `🔥${progress.dayStreak}日`;
+}
+function starIcons(n, unlocked){
+  if(!unlocked) return '🔒';
+  let s='';
+  for(let i=0;i<3;i++) s += `<span class="${i<n?'':'dim'}">★</span>`;
+  return s;
+}
+function isUnitUnlocked(uIdx){
+  return true; // ロック機能は一時的に無効化(どこからでも始められる)
+}
+function isStageUnlocked(unitId, uIdx, sIdx){
+  return true; // ロック機能は一時的に無効化(どこからでも始められる)
+}
+
+function renderHome(){
+  renderStatusBar();
+  document.getElementById('statToday').textContent = progress.todayCount;
+  document.getElementById('statCorrect').textContent = progress.totalCorrect;
+  document.getElementById('statDay').textContent = progress.dayStreak;
+  document.getElementById('rulebookCount').textContent = `${acquiredCount()}/${totalRuleCount()}`;
+
+  const wrap = document.getElementById('unitList');
+  wrap.innerHTML = '';
+  GRADES.forEach(g=>{
+    const gradeUnits = UNITS.map((u,i)=>({u,i})).filter(({u})=>u.grade===g.grade);
+    if(gradeUnits.length===0) return;
+    const gradeHeader = document.createElement('div');
+    gradeHeader.className = 'grade-header';
+    gradeHeader.textContent = g.label;
+    wrap.appendChild(gradeHeader);
+
+    gradeUnits.forEach(({u:unit, i:uIdx})=>{
+      const stages = STAGE_DEFS[unit.id];
+      const cleared = progress.stageStars[unit.id].filter(s=>s>=1).length;
+      const totalStars = progress.stageStars[unit.id].reduce((a,b)=>a+b,0);
+      const maxStars = stages.length*3;
+      const card = document.createElement('button');
+      card.className = 'unit-card';
+      card.innerHTML = `
+        <span class="unit-card-icon mono">${unit.icon||''}</span>
+        <span class="unit-card-info">
+          <span class="unit-card-title">${unit.title}</span>
+          <span class="unit-card-sub">${unit.subtitle}</span>
+        </span>
+        <span class="unit-card-progress">${cleared>0 ? `★${totalStars}/${maxStars}` : `全${stages.length}ステージ`}</span>
+        <span class="unit-card-chevron">›</span>
+      `;
+      card.addEventListener('click', ()=>{ renderUnitScreen(unit.id, uIdx); showScreen('unit'); });
+      wrap.appendChild(card);
+    });
+  });
+}
+document.getElementById('openRulebook').addEventListener('click', ()=>{ renderRulebook(); showScreen('rulebook'); });
+document.getElementById('rbBackBtn').addEventListener('click', ()=>{ showScreen('home'); renderHome(); });
+document.getElementById('unitBackBtn').addEventListener('click', ()=>{ showScreen('home'); renderHome(); });
+
+function renderUnitScreen(unitId, uIdx){
+  const unit = UNITS[uIdx];
+  document.getElementById('unitScreenTitle').textContent = unit.title;
+  document.getElementById('unitScreenSub').textContent = unit.subtitle;
+  const list = document.getElementById('unitStageList');
+  list.innerHTML = '';
+  STAGE_DEFS[unit.id].forEach((sd, sIdx)=>{
+    const unlocked = isStageUnlocked(unit.id, uIdx, sIdx);
+    const gotGuide = !!progress.acquiredMain[sd.ruleId];
+    const row = document.createElement('button');
+    row.className = 'stage-row' + (unlocked?'':' locked');
+    row.innerHTML = `
+      ${(unlocked && !gotGuide) ? `<span class="new-tag">${sd.isCombo?'くみあわせ':'NEW'}</span>` : ''}
+      <span class="stage-num">${gotGuide ? RULES[sd.ruleId].icon : (sIdx+1)}</span>
+      <span class="stage-info">
+        <span class="stage-title">${sd.title}</span>
+        <span class="stage-formula mono">${sd.example}</span>
+      </span>
+      <span class="stage-stars">${starIcons(progress.stageStars[unit.id][sIdx], unlocked)}</span>
+    `;
+    if(unlocked) row.addEventListener('click', ()=>enterStage(unit.id, uIdx, sIdx));
+    list.appendChild(row);
+  });
+}
+
+function renderRulebook(){
+  const content = document.getElementById('rbContent');
+  content.innerHTML = '';
+  GRADES.forEach(g=>{
+    const gradeUnits = UNITS.filter(u=>u.grade===g.grade);
+    if(gradeUnits.length===0) return;
+    const gh = document.createElement('div');
+    gh.className = 'grade-header';
+    gh.textContent = g.label;
+    content.appendChild(gh);
+
+    gradeUnits.forEach(unit=>{
+      const h = document.createElement('div');
+      h.className = 'rb-unit-title';
+      h.textContent = unit.title;
+      content.appendChild(h);
+      const ids = STAGE_DEFS[unit.id].map(sd=>sd.ruleId).concat(SUB_RULES_BY_UNIT[unit.id]);
+      ids.forEach(id=>{
+        const r = RULES[id];
+        const isSub = r.cat==='sub';
+        const got = isSub ? !!progress.acquiredSub[id] : !!progress.acquiredMain[id];
+        const row = document.createElement('div');
+        row.className = 'rule-row' + (got?'':' locked');
+        if(got && !isSub){
+          const mastery = progress.mastery[id]||0;
+          const lv = Math.max(1, Math.ceil(mastery/34));
+          row.innerHTML = `<span class="rule-icon mono">${r.icon}</span><div style="flex:1;"><div class="rule-name">${r.name} <span style="color:var(--gold);font-size:11px;">Lv.${lv}</span></div><div class="rule-short mono">${r.formula.split('\n')[0]}</div><div class="meter"><span style="width:${mastery}%"></span></div><div class="mastery-label">熟練度 ${mastery}%</div></div>`;
+        } else {
+          row.innerHTML = got
+            ? `<span class="rule-icon mono">${r.icon}</span><div><div class="rule-name">${r.name}</div><div class="rule-short mono">${r.formula.split('\n')[0]}</div></div>`
+            : `<span class="rule-icon">?</span><div><div class="rule-name">まだ見ぬ解き方</div><div class="rule-short">${isSub?'練習の中で見つかるよ':'ステージを進めると出会えるよ'}</div></div>`;
+        }
+        if(got) row.addEventListener('click', ()=>openSheet(r));
+        content.appendChild(row);
+      });
+    });
+  });
+}
+
+function showScreen(name){
+  ['home','unit','guide','quiz','result','rulebook'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
+  });
+}
+
+/* ============ guide flow ============ */
+let guideCtx = null;
+function enterStage(unitId, uIdx, sIdx){
+  const sd = STAGE_DEFS[unitId][sIdx];
+  if(!progress.acquiredMain[sd.ruleId]) startGuide(unitId, sIdx);
+  else startStage(unitId, sIdx);
+}
+function startGuide(unitId, sIdx){
+  const sd = STAGE_DEFS[unitId][sIdx];
+  const example = sd.gen();
+  const blanks = flattenBlanks(example.lines);
+  guideCtx = { unitId, sIdx, lines:example.lines, blanks, revealIdx:0, revealed:false };
+  document.getElementById('guideBadge').textContent = sd.isCombo ? 'くみあわせ' : 'NEW';
+  document.getElementById('guideName').textContent = RULES[sd.ruleId].name;
+  document.getElementById('guideEq').innerHTML = example.q.replace(/\n/g,'<br>');
+  document.getElementById('guideSteps').innerHTML = renderLinesHTML(guideCtx.lines, guideCtx.blanks, 0, null);
+  document.getElementById('guideReveal').classList.add('hidden');
+  document.getElementById('guideNextBtn').textContent = 'つぎへ';
+  showScreen('guide');
+}
+document.getElementById('guideNextBtn').addEventListener('click', ()=>{
+  const sd = STAGE_DEFS[guideCtx.unitId][guideCtx.sIdx];
+  if(guideCtx.revealIdx < guideCtx.blanks.length){
+    guideCtx.revealIdx += 1;
+    document.getElementById('guideSteps').innerHTML = renderLinesHTML(guideCtx.lines, guideCtx.blanks, guideCtx.revealIdx, null);
+    if(guideCtx.revealIdx >= guideCtx.blanks.length){
+      document.getElementById('guideNextBtn').textContent = '解き方を獲得する';
+    }
+  } else if(!guideCtx.revealed){
+    const r = RULES[sd.ruleId];
+    document.getElementById('revealIcon').textContent = r.icon;
+    document.getElementById('revealName').textContent = r.name;
+    document.getElementById('revealShort').innerHTML = r.formula.replace(/\n/g,'<br>');
+    document.getElementById('revealSample').innerHTML = r.sample.replace(/\n/g,'<br>');
+    document.getElementById('guideReveal').classList.remove('hidden');
+    guideCtx.revealed = true;
+    progress.acquiredMain[sd.ruleId] = true;
+    progress.mastery[sd.ruleId] = 20;
+    saveProgress();
+    document.getElementById('guideNextBtn').textContent = '練習をはじめる';
+  } else {
+    startStage(guideCtx.unitId, guideCtx.sIdx);
+  }
+});
+
+/* ============ quiz state ============ */
+let cur = { unitId:'seifu', stageIdx:0, questions:[], qIdx:0, correct:0, combo:0,
+            blanks:[], blankIdx:0, mistakes:0, usedHint:false, sign:1, digits:'' };
+
+function startStage(unitId, sIdx){
+  const sd = STAGE_DEFS[unitId][sIdx];
+  cur.unitId = unitId;
+  cur.stageIdx = sIdx;
+  cur.questions = Array.from({length:5}, ()=>sd.gen());
+  cur.qIdx = 0;
+  cur.correct = 0;
+  cur.combo = 0;
+  showScreen('quiz');
+  const unit = UNITS.find(u=>u.id===unitId);
+  document.getElementById('unitCrumb').textContent = `${unit.title} ・ ${sd.title}`;
+  renderQuestion();
+}
+
+function renderDots(){
+  const wrap = document.getElementById('dots');
+  wrap.innerHTML = '';
+  for(let i=0;i<5;i++){
+    const d = document.createElement('span');
+    d.className = 'dot' + (i<cur.qIdx?' done':'') + (i===cur.qIdx?' current':'');
+    wrap.appendChild(d);
+  }
+}
+function updateAnswerDisplay(){
+  const digits = cur.digits === '' ? '' : cur.digits;
+  document.getElementById('answerDisplay').textContent = digits==='' ? '0' : (cur.sign<0?'-':'')+digits;
+}
+function liveTextFor(blank){
+  if(!blank || blank.type==='sign') return null;
+  if(cur.digits==='') return null;
+  return (cur.sign<0?'-':'')+cur.digits;
+}
+function renderWorking(){
+  const q = cur.questions[cur.qIdx];
+  const live = liveTextFor(cur.blanks[cur.blankIdx]);
+  document.getElementById('workingLines').innerHTML = renderLinesHTML(q.lines, cur.blanks, cur.blankIdx, live);
+}
+function updateAnswerModeUI(){
+  const blank = cur.blanks[cur.blankIdx];
+  const isSign = blank && blank.type==='sign';
+  document.getElementById('answerAreaNumber').classList.toggle('hidden', isSign);
+  document.getElementById('keypad').classList.toggle('hidden', isSign);
+  document.getElementById('answerAreaSign').classList.toggle('hidden', !isSign);
+  document.getElementById('submitBtn').classList.toggle('hidden', isSign);
+}
+
+function renderQuestion(){
+  const q = cur.questions[cur.qIdx];
+  cur.blanks = flattenBlanks(q.lines);
+  cur.blankIdx = 0;
+  cur.mistakes = 0;
+  cur.usedHint = false;
+  cur.sign = 1; cur.digits='';
+
+  renderDots();
+  document.getElementById('equationText').innerHTML = q.q.replace(/\n/g,'<br>');
+  document.getElementById('ruleStrip').textContent = `使う解き方: ${RULES[q.mainRule].formula.split('\n')[0]}`;
+  document.getElementById('feedbackLine').innerHTML = '';
+  document.getElementById('feedbackLine').className = 'feedback-line';
+  document.getElementById('hintBox').classList.add('hidden');
+  updateAnswerDisplay();
+  renderWorking();
+  updateAnswerModeUI();
+
+  const beam = document.getElementById('scaleBeam');
+  const tilt = (Math.random()<0.5 ? -9 : 9);
+  beam.style.setProperty('--tilt', `${tilt}deg`);
+  beam.style.transform = `rotate(${tilt}deg)`;
+  beam.classList.remove('shake');
+
+  (q.subRules||[]).forEach(sid=>{
+    if(!progress.acquiredSub[sid]){
+      progress.acquiredSub[sid] = true;
+      saveProgress();
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = `✨新しい解き方を獲得!「${RULES[sid].name}」`;
+      document.getElementById('frame').appendChild(t);
+      setTimeout(()=>t.remove(), 2900);
+    }
+  });
+}
+
+document.getElementById('keypad').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.key');
+  if(!btn) return;
+  if(btn.dataset.d !== undefined){
+    if(cur.digits.length < 5) cur.digits += btn.dataset.d;
+    updateAnswerDisplay(); renderWorking();
+  }
+});
+document.getElementById('signKey').addEventListener('click', ()=>{ cur.sign *= -1; updateAnswerDisplay(); renderWorking(); });
+document.getElementById('backKey').addEventListener('click', ()=>{ cur.digits = cur.digits.slice(0,-1); updateAnswerDisplay(); renderWorking(); });
+
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  const q = cur.questions[cur.qIdx];
+  const blank = cur.blanks[cur.blankIdx];
+  cur.usedHint = true;
+  const box = document.getElementById('hintBox');
+  box.classList.remove('hidden');
+  box.innerHTML = `<span class="mono" style="color:var(--gold);">この空欄の答え: ${formatBlank(blank)}</span>`;
+});
+document.getElementById('ruleRefBtn').addEventListener('click', ()=>{
+  const q = cur.questions[cur.qIdx];
+  openSheet(RULES[q.mainRule]);
+});
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  renderUnitScreen(cur.unitId, UNITS.findIndex(u=>u.id===cur.unitId));
+  showScreen('unit');
+});
+
+function burstCoins(){
+  const rect = document.getElementById('equationText').getBoundingClientRect();
+  for(let i=0;i<8;i++){
+    const c = document.createElement('div');
+    c.className = 'coin';
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    c.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
+    c.style.setProperty('--dy', `${Math.sin(angle)*dist}px`);
+    c.style.left = `${rect.left + rect.width/2}px`;
+    c.style.top = `${rect.top + rect.height/2}px`;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 720);
+  }
+}
+
+function showMistakeHint(q){
+  const r = RULES[q.mainRule];
+  const box = document.getElementById('hintBox');
+  box.classList.remove('hidden');
+  box.innerHTML = `<div style="color:var(--gold);font-weight:700;margin-bottom:4px;">獲得ずみ「${r.name}」で解けるよ</div><div class="mono" style="font-size:14px;color:var(--gold);">${r.formula.replace(/\n/g,'<br>')}</div><span class="rule-chip" id="miniRuleChip" style="margin-top:8px;">くわしく見る</span>`;
+  document.getElementById('miniRuleChip').addEventListener('click', ()=>openSheet(r));
+}
+
+function finishQuestionCorrect(){
+  const q = cur.questions[cur.qIdx];
+  const beam = document.getElementById('scaleBeam');
+  const fb = document.getElementById('feedbackLine');
+  const hadHelp = cur.mistakes>0 || cur.usedHint;
+  cur.combo = hadHelp ? 0 : cur.combo+1;
+  cur.correct += 1;
+  progress.todayCount += 1;
+  let gained = 10 + Math.min(cur.combo-1,5)*2;
+  if(hadHelp) gained = Math.max(8, Math.round(gained*0.6));
+  awardXp(gained);
+  const masteryGain = bumpMastery(q.mainRule, 12);
+  saveProgress();
+  renderStatusBar();
+  beam.style.transform = 'rotate(0deg)';
+  burstCoins();
+  const msgs = cur.combo>=3
+    ? [`せいかい!${cur.combo}連続だね`, `やった!絶好調`, `お見事、${cur.combo}連続正解`]
+    : [`せいかい!`, `いいね、その調子`, `正解!`];
+  const masteryText = masteryGain>0 ? ` ・熟練度+${masteryGain}%` : '';
+  fb.innerHTML = `<span>${msgs[randInt(0,msgs.length-1)]} (+${gained}XP${masteryText})</span>`;
+  fb.className = 'feedback-line ok';
+  setTimeout(()=>{
+    cur.qIdx += 1;
+    if(cur.qIdx >= 5) finishSet(); else renderQuestion();
+  }, 900);
+}
+
+function resolveBlank(isCorrect){
+  const q = cur.questions[cur.qIdx];
+  const beam = document.getElementById('scaleBeam');
+  const fb = document.getElementById('feedbackLine');
+  if(isCorrect){
+    cur.blankIdx += 1;
+    cur.digits=''; cur.sign=1; updateAnswerDisplay();
+    fb.innerHTML=''; fb.className='feedback-line';
+    document.getElementById('hintBox').classList.add('hidden');
+    if(cur.blankIdx >= cur.blanks.length){
+      renderWorking();
+      finishQuestionCorrect();
+    } else {
+      renderWorking();
+      updateAnswerModeUI();
+    }
+  } else {
+    cur.mistakes += 1;
+    beam.classList.remove('shake'); void beam.offsetWidth; beam.classList.add('shake');
+    fb.innerHTML = `<span>おしい、もう一度!</span>`;
+    fb.className = 'feedback-line ng';
+    showMistakeHint(q);
+    cur.digits=''; cur.sign=1; updateAnswerDisplay(); renderWorking();
+  }
+}
+
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  if(cur.digits === '') return;
+  const blank = cur.blanks[cur.blankIdx];
+  const given = cur.sign * parseInt(cur.digits, 10);
+  resolveBlank(given === blank.value);
+});
+document.getElementById('signPlusBtn').addEventListener('click', ()=>{
+  const blank = cur.blanks[cur.blankIdx];
+  resolveBlank(blank.value === '+');
+});
+document.getElementById('signMinusBtn').addEventListener('click', ()=>{
+  const blank = cur.blanks[cur.blankIdx];
+  resolveBlank(blank.value === '-');
+});
+
+function finishSet(){
+  progress.totalCorrect += cur.correct;
+  progress.totalAnswered += 5;
+  let stars = 0;
+  if(cur.correct>=3) stars=1;
+  if(cur.correct>=4) stars=2;
+  if(cur.correct===5) stars=3;
+  const isFirstClearOfEqStage0 = (cur.unitId==='houteishiki' && cur.stageIdx===0 && progress.stageStars.houteishiki[0]===0 && stars>=1);
+  progress.stageStars[cur.unitId][cur.stageIdx] = Math.max(progress.stageStars[cur.unitId][cur.stageIdx], stars);
+
+  subUnlockedThisSession = null;
+  if(isFirstClearOfEqStage0 && !progress.acquiredSub['eq_s4']){
+    progress.acquiredSub['eq_s4'] = true;
+    subUnlockedThisSession = 'eq_s4';
+  }
+  saveProgress();
+
+  const sd = STAGE_DEFS[cur.unitId][cur.stageIdx];
+  document.getElementById('resultStageTitle').textContent = `${sd.title} 完了`;
+  document.getElementById('resultScore').textContent = `${cur.correct} / 5`;
+  document.getElementById('resultStars').innerHTML = starIcons(stars, true);
+  document.getElementById('resultXp').textContent = `+${sessionXp} XP`;
+
+  const banner = document.getElementById('levelupBanner');
+  if(leveledUpThisSession){
+    banner.textContent = `レベルアップ! Lv.${progress.level} になった!`;
+    banner.classList.remove('hidden');
+  } else { banner.classList.add('hidden'); }
+
+  const subBanner = document.getElementById('subUnlockBanner');
+  if(subUnlockedThisSession){
+    subBanner.textContent = `おまけの解き方を発見!「${RULES[subUnlockedThisSession].name}」`;
+    subBanner.classList.remove('hidden');
+  } else { subBanner.classList.add('hidden'); }
+
+  const msgPool = cur.correct<=1
+    ? ["はじめの一歩、大事だよ。次はもっと解けるようになる。", "むずかしかったね。ヒントを見ながらもう一度いってみよう。"]
+    : cur.correct<=3
+    ? ["いい感じ!このペースで続けよう。", "着実に力がついてきてるよ。"]
+    : cur.correct===4
+    ? ["かなり安定してきた!あと少しで完璧。", "いい調子!次は満点いけそう。"]
+    : ["パーフェクト!完全に理解できてるね。", "全問正解、お見事!次のステージへ進もう。"];
+  document.getElementById('resultMsg').textContent = msgPool[randInt(0,msgPool.length-1)];
+
+  showScreen('result');
+  sessionXp = 0;
+  leveledUpThisSession = false;
+}
+
+document.getElementById('retryBtn').addEventListener('click', ()=>startStage(cur.unitId, cur.stageIdx));
+document.getElementById('homeBtn').addEventListener('click', ()=>{
+  renderUnitScreen(cur.unitId, UNITS.findIndex(u=>u.id===cur.unitId));
+  showScreen('unit');
+});
+
+/* ============ init ============ */
+(async function init(){
+  progress = await loadProgress();
+  applyDayStreak();
+  applyTodayCount();
+  await saveProgress();
+  renderHome();
+  showScreen('home');
+})();
+</script>
+</body>
+</html>
