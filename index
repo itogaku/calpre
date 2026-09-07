@@ -404,6 +404,8 @@ function fmtOp(n){ return n>=0 ? `+ ${n}` : `- ${Math.abs(n)}`; }
 function fmtOpDiv(n,div){ const v=(Math.abs(n)/div).toFixed(1); return n>=0?`+ ${v}`:`- ${v}`; }
 function coeffStr(n){ if(n===1) return 'x'; if(n===-1) return '-x'; return `${n}x`; }
 function termStr(n, v){ if(n===1) return v; if(n===-1) return '-'+v; return `${n}${v}`; }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); return b?gcd(b,a%b):a; }
+function lcm(a,b){ return Math.abs(a*b)/gcd(a,b); }
 function coeffStrDiv(n,div){ const v=(n/div).toFixed(1); return `${v}x`; }
 function coeffPick(min,max){
   if(Math.random()<0.22) return -1;
@@ -466,7 +468,12 @@ const RULES = {
       formula:'|+a| = a    |−a| = a', sample:'|−7| = 7'},
   sf_s2:{cat:'sub', unit:'seifu', icon:'÷=×', name:'わり算は逆数のかけ算',
       formula:'a ÷ b = a × (1/b)', sample:'12 ÷ 4 = 12 × (1/4) = 3'},
-
+  sf_m6:{cat:'main', unit:'seifu', icon:'aⁿ', name:'累乗',
+      formula:'(−a)² = +a²   (−a)³ = −a³', sample:'(−3)² = 9, (−3)³ = −27'},
+  sf_m7:{cat:'main', unit:'seifu', icon:'四則', name:'四則混合の計算',
+      formula:'かけ算・わり算を先に計算してから、たし算・ひき算をする', sample:'3 + 2×4 = 3+8 = 11'},
+  sf_s3:{cat:'sub', unit:'seifu', icon:'±ⁿ', name:'累乗の符号',
+      formula:'負の数の偶数乗は＋、奇数乗は－', sample:'(−2)⁴=+16, (−2)³=−8'},
   mj_m1:{cat:'main', unit:'moji', icon:'x+x', name:'同類項をまとめる',
       formula:'a x + b x = (a+b) x', sample:'3x + 5x = 8x'},
   mj_m2:{cat:'main', unit:'moji', icon:'(+)', name:'1次式の加法',
@@ -483,6 +490,8 @@ const RULES = {
       formula:'1x = x    −1x = −x', sample:'−1x + 4 = −x + 4'},
   mj_s2:{cat:'sub', unit:'moji', icon:'-( )', name:'かっこの前が－のとき',
       formula:'−(c x + d) = −c x − d', sample:'−(3x+2) = −3x−2'},
+  mj_m7:{cat:'main', unit:'moji', icon:'( )/n', name:'一次式を含む分数の計算',
+      formula:'(ax+b)/c + (dx+e)/c = ((a+d)x+(b+e))/c', sample:'(2x+1)/3 + (x+2)/3 = (3x+3)/3'},
 
   eq_m1:{cat:'main', unit:'houteishiki', icon:'⇄', name:'移項(たし算・ひき算)',
       formula:'x + a = b  ⟹  x = b − a', sample:'x + 5 = 12 ⟹ x = 12 − 5 = 7'},
@@ -504,6 +513,10 @@ const RULES = {
       formula:'−(x + a) = −x − a', sample:'−(x + 3) = −x − 3'},
   eq_s4:{cat:'sub', unit:'houteishiki', icon:'✓', name:'答えの確かめ(検算)',
       formula:'x = k ⟹ 左辺|x=k =? 右辺|x=k', sample:'x=7: 5+7=12, 右辺=12 ⟹ 一致'},
+  eq_m7:{cat:'main', unit:'houteishiki', icon:'( )/n=', name:'分子に一次式を持つ分数の方程式',
+      formula:'(ax+b)/c = d ⟹ ax+b = cd', sample:'(2x+1)/3 = 5 ⟹ 2x+1=15'},
+  eq_m8:{cat:'main', unit:'houteishiki', icon:'比', name:'比例式',
+      formula:'a : b = c : x ⟹ a x = b c', sample:'2:3 = 4:x ⟹ 2x=12'},
 
   /* --- 式の計算(中2) --- */
   s2_m1:{cat:'main', unit:'shiki2', icon:'x×x', name:'単項式の乗法',
@@ -518,6 +531,12 @@ const RULES = {
       formula:'x = k のとき a x + b = a×k + b', sample:'x=3: 2x+1 = 2×3+1 = 7'},
   s2_s1:{cat:'sub', unit:'shiki2', icon:'x²', name:'指数の意味',
       formula:'x × x = x²', sample:'x × x = x²'},
+  s2_m6:{cat:'main', unit:'shiki2', icon:'( )/n+', name:'分数の加減(異分母)',
+      formula:'(x+a)/p + (x+b)/q ⟹ 通分してから足す', sample:'(x+1)/2+(x+1)/3 = (5x+5)/6'},
+  s2_m7:{cat:'main', unit:'shiki2', icon:'x=', name:'等式の変形(xについて解く)',
+      formula:'a x + b y = c ⟹ x = (c/a) − (b/a)y', sample:'2x+3y=6 ⟹ x=3−1.5y'},
+  s2_s2:{cat:'sub', unit:'shiki2', icon:'通分', name:'分数の計算も通分してから',
+      formula:'分母をそろえてから分子をまとめる', sample:'分母2と3 ⟹ 6にそろえる'},
 
   /* --- 連立方程式 --- */
   rn_m1:{cat:'main', unit:'renritsu', icon:'代入', name:'代入法',
@@ -530,6 +549,18 @@ const RULES = {
       formula:'両方を別の数倍して、係数をそろえてから加減する', sample:'式①を3倍、式②を2倍してから引く'},
   rn_s1:{cat:'sub', unit:'renritsu', icon:'=', name:'加減法は係数をそろえる',
       formula:'消したい文字の係数を、同じ数にそろえる', sample:'yの係数を2と2にそろえる'},
+  rn_m5:{cat:'main', unit:'renritsu', icon:'A=B=C', name:'A=B=C の形の連立方程式',
+      formula:'A=B=C ⟹ A=C と B=C の2つの式にする', sample:'2x+y=3x−y=4 ⟹ 2式に分ける'},
+  rn_m6:{cat:'main', unit:'renritsu', icon:'x=', name:'等式の変形が必要な連立方程式',
+      formula:'先に一方をy=…の形に変形してから代入する', sample:'2x−y=3 ⟹ y=2x−3'},
+  rn_m7:{cat:'main', unit:'renritsu', icon:'0.1', name:'小数を含む連立方程式',
+      formula:'両辺を10倍(または100倍)して整数の式にしてから解く', sample:'0.2x+0.3y=1.1 ⟹ 2x+3y=11'},
+  rn_m8:{cat:'main', unit:'renritsu', icon:'x/n', name:'分数を含む連立方程式',
+      formula:'両辺に分母をかけて分数を消してから解く', sample:'x/2+y=5 ⟹ x+2y=10'},
+  rn_m9:{cat:'main', unit:'renritsu', icon:'( )/n', name:'多項式の分数を含む連立方程式',
+      formula:'(x+y)/n=k のような式も、両辺にnをかけて分数を消す', sample:'(x+y)/2=3 ⟹ x+y=6'},
+  rn_m10:{cat:'main', unit:'renritsu', icon:'大', name:'大きな数の連立方程式',
+      formula:'数が大きくても手順は同じ。ていねいに計算する', sample:'12x+7y=100, …'},
 
   /* --- 因数分解 --- */
   fc_m1:{cat:'main', unit:'inzuu', icon:'a( )', name:'共通因数をくくり出す',
@@ -546,6 +577,16 @@ const RULES = {
       formula:'a+b=(xの係数), a×b=(定数項)', sample:'和5・積6 ⟹ 2と3'},
   fc_s2:{cat:'sub', unit:'inzuu', icon:'a²≥0', name:'2乗はいつも0以上',
       formula:'a² ≥ 0 (どんなaでも)', sample:'(−3)² = 9'},
+  fc_m6:{cat:'main', unit:'inzuu', icon:'k( )', name:'公式の前に共通因数をくくり出す',
+      formula:'まず共通因数をくくり出してから公式を使う', sample:'2x²+10x+8=2(x²+5x+4)=2(x+1)(x+4)'},
+  fc_m7:{cat:'main', unit:'inzuu', icon:'置換', name:'置き換えが必要な因数分解',
+      formula:'M=x+yなどと置き換えてから公式を使う', sample:'(x+y)²+2(x+y)+1=(x+y+1)²'},
+  fc_m8:{cat:'main', unit:'inzuu', icon:'計算', name:'因数分解の利用(計算)',
+      formula:'A×B=(中央値)²−(差)² を使って計算する', sample:'53×47=(50+3)(50−3)=2491'},
+  fc_m9:{cat:'main', unit:'inzuu', icon:'代入', name:'展開・因数分解後に代入',
+      formula:'先に因数分解してから数を代入すると計算が楽になる', sample:'x²−y²=(x+y)(x−y)'},
+  fc_m10:{cat:'main', unit:'inzuu', icon:'選択', name:'使い分けて因数分解する',
+      formula:'共通因数 → x²+(a+b)x+ab → (x±a)² → x²−a² の順に確認する', sample:'式の形を見て、あてはまる公式を選ぶ'},
 
   /* --- 平方根 --- */
   hk_m1:{cat:'main', unit:'heihoukon', icon:'√×√', name:'√の乗法',
@@ -572,6 +613,76 @@ const RULES = {
       formula:'ax²+bx+c=0 ⟹ x=(−b±√(b²−4ac))÷2a', sample:'x²−x−6=0 ⟹ x=3,−2'},
   nj_s1:{cat:'sub', unit:'nijihou', icon:'±', name:'解は2つ(±)',
       formula:'x²=a ⟹ x=+√a と x=−√a の2つ', sample:'x²=4 ⟹ x=2 と x=−2'},
+
+  /* --- 小数の計算(小学校) --- */
+  sh_m1:{cat:'main', unit:'shousu', icon:'0.a+', name:'小数のたし算',
+      formula:'0.a + 0.b = 0.(a+b) を計算する', sample:'0.3 + 0.5 = 0.8'},
+  sh_m2:{cat:'main', unit:'shousu', icon:'0.a-', name:'小数のひき算',
+      formula:'0.a − 0.b = 0.(a−b) を計算する', sample:'0.8 − 0.3 = 0.5'},
+  sh_m3:{cat:'main', unit:'shousu', icon:'0.a×', name:'小数のかけ算',
+      formula:'0.a × n を計算する(位をそろえて考える)', sample:'0.2 × 3 = 0.6'},
+  sh_m4:{cat:'main', unit:'shousu', icon:'÷', name:'小数のわり算',
+      formula:'小数 ÷ n を計算する', sample:'0.6 ÷ 2 = 0.3'},
+  sh_s1:{cat:'sub', unit:'shousu', icon:'.', name:'小数点の位置をそろえる',
+      formula:'たし算・ひき算は小数点をそろえて計算する', sample:'0.30 + 0.05 のように位をそろえる'},
+
+  /* --- 分数の計算(小学校) --- */
+  bn_m1:{cat:'main', unit:'bunsu', icon:'a/c+', name:'同分母の分数のたし算',
+      formula:'a/c + b/c = (a+b)/c', sample:'1/5 + 2/5 = 3/5'},
+  bn_m2:{cat:'main', unit:'bunsu', icon:'a/c-', name:'同分母の分数のひき算',
+      formula:'a/c − b/c = (a−b)/c', sample:'4/5 − 1/5 = 3/5'},
+  bn_m3:{cat:'main', unit:'bunsu', icon:'通分', name:'異分母の分数のたし算(通分)',
+      formula:'a/c1 + b/c2 ⟹ 分母をそろえてから足す', sample:'1/2 + 1/3 = 5/6'},
+  bn_m4:{cat:'main', unit:'bunsu', icon:'×', name:'分数のかけ算',
+      formula:'a/b × c/d = (a×c)/(b×d)', sample:'2/3 × 3/4 = 6/12'},
+  bn_m5:{cat:'main', unit:'bunsu', icon:'÷', name:'分数のわり算',
+      formula:'a/b ÷ c/d = a/b × d/c = (a×d)/(b×c)', sample:'2/3 ÷ 1/2 = 4/3'},
+  bn_s1:{cat:'sub', unit:'bunsu', icon:'公倍数', name:'通分は分母をそろえる',
+      formula:'2つの分母の最小公倍数に分母をそろえる', sample:'2と3 ⟹ 公倍数6にそろえる'},
+  bn_s2:{cat:'sub', unit:'bunsu', icon:'÷=×', name:'わり算は逆数のかけ算',
+      formula:'÷(c/d) は ×(d/c) にする', sample:'÷2/3 は ×3/2'},
+
+  /* --- 素因数分解 --- */
+  si_m1:{cat:'main', unit:'soinsuu', icon:'p^e', name:'素因数分解する',
+      formula:'N = pᵃ × qᵇ (p,qは素数)', sample:'72 = 2³ × 3²'},
+  si_m2:{cat:'main', unit:'soinsuu', icon:'GCD', name:'素因数分解を利用する(最大公約数)',
+      formula:'共通する素因数だけを取り出す', sample:'12=2²×3, 18=2×3² ⟹ 最大公約数=6'},
+  si_s1:{cat:'sub', unit:'soinsuu', icon:'aⁿ', name:'指数の意味',
+      formula:'aⁿ = a×a×…×a (n個)', sample:'2³ = 2×2×2 = 8'},
+
+  /* --- 展開 --- */
+  tk_m1:{cat:'main', unit:'tenkai', icon:'( )( )', name:'(x+a)(x+b)の展開',
+      formula:'(x+a)(x+b) = x² + (a+b)x + ab', sample:'(x+2)(x+3) = x²+5x+6'},
+  tk_m2:{cat:'main', unit:'tenkai', icon:'( )²', name:'(x+a)²の展開',
+      formula:'(x+a)² = x² + 2ax + a²', sample:'(x+3)² = x²+6x+9'},
+  tk_m3:{cat:'main', unit:'tenkai', icon:'( )²', name:'(x−a)²の展開',
+      formula:'(x−a)² = x² − 2ax + a²', sample:'(x−3)² = x²−6x+9'},
+  tk_m4:{cat:'main', unit:'tenkai', icon:'差', name:'(x+a)(x−a)の展開',
+      formula:'(x+a)(x−a) = x² − a²', sample:'(x+4)(x−4) = x²−16'},
+  tk_m5:{cat:'main', unit:'tenkai', icon:'置換', name:'置き換えが必要な展開',
+      formula:'M=x+aと置くと (M+b)(M−b) = M²−b²', sample:'(x+2+3)(x+2−3) = (x+2)²−9'},
+  tk_s1:{cat:'sub', unit:'tenkai', icon:'⇄', name:'展開は因数分解の逆',
+      formula:'展開⟺因数分解は逆の操作', sample:'(x+2)(x+3)=x²+5x+6 の逆が因数分解'},
+  tk_m6:{cat:'main', unit:'tenkai', icon:'計算', name:'計算における展開の利用',
+      formula:'N=(a+b)のとき N²=a²+2ab+b² を使って計算する', sample:'102²=(100+2)²=10404'},
+
+  /* --- 平方根(追加) --- */
+  hk_m6:{cat:'main', unit:'heihoukon', icon:'√( )', name:'√の分配法則',
+      formula:'√a(√b + n) = √(ab) + n√a', sample:'√2(√3+4) = √6+4√2'},
+  hk_m7:{cat:'main', unit:'heihoukon', icon:'公式', name:'乗法公式(√を含む)',
+      formula:'(√a+b)(√a−b) = a − b²', sample:'(√5+2)(√5−2) = 1'},
+  hk_m8:{cat:'main', unit:'heihoukon', icon:'f(√)', name:'式の値(√を代入)',
+      formula:'x=√a のとき x²+n = a+n', sample:'x=√3: x²+1 = 4'},
+
+  /* --- 二次方程式(追加) --- */
+  nj_m5:{cat:'main', unit:'nijihou', icon:'x( )', name:'くくり出しの因数分解で解く',
+      formula:'x²+bx=0 ⟹ x(x+b)=0 ⟹ x=0,−b', sample:'x²+3x=0 ⟹ x=0,−3'},
+  nj_m6:{cat:'main', unit:'nijihou', icon:'整理', name:'整理して因数分解で解く',
+      formula:'まず右辺を移項して x²+…=0 の形にしてから解く', sample:'x²+3x=2x+6 ⟹ x²+x−6=0'},
+  nj_m7:{cat:'main', unit:'nijihou', icon:'完成', name:'平方完成のための変形',
+      formula:'x²+2px+c=0 ⟹ (x+p)² = p²−c', sample:'x²+4x+1=0 ⟹ (x+2)²=3'},
+  nj_m8:{cat:'main', unit:'nijihou', icon:'簡単', name:'係数を簡単にしてから解く',
+      formula:'まず両辺を共通因数でわって係数を小さくする', sample:'2x²+8x+6=0 ⟹ x²+4x+3=0'},
 };
 
 /* ============ generators: 正負の数 ============ */
@@ -1054,29 +1165,497 @@ function genNj4(){
   return { q, answer:{r1,r2}, mainRule:'nj_m4', subRules:[], lines };
 }
 
+/* ============ generators: 小数の計算(小学校) ============ */
+function genSh1(){
+  const a = randInt(1,9), b = randInt(1,9);
+  const sum = a+b;
+  const intPart = Math.floor(sum/10), tenths = sum%10;
+  const q = `0.${a} + 0.${b}`;
+  const lines = [ [ BN(intPart), T('.'), BN(tenths) ] ];
+  return { q, answer:sum/10, mainRule:'sh_m1', subRules:['sh_s1'], lines };
+}
+function genSh2(){
+  const a = randInt(2,9), b = randInt(1,a-1);
+  const diff = a-b;
+  const q = `0.${a} - 0.${b}`;
+  const lines = [ [ T('0.'), BN(diff) ] ];
+  return { q, answer:diff/10, mainRule:'sh_m2', subRules:[], lines };
+}
+function genSh3(){
+  const dec = randInt(1,9), mul = randInt(2,9);
+  const product = dec*mul;
+  const intPart = Math.floor(product/10), tenths = product%10;
+  const q = `0.${dec} × ${mul}`;
+  const lines = [ [ BN(intPart), T('.'), BN(tenths) ] ];
+  return { q, answer:product/10, mainRule:'sh_m3', subRules:[], lines };
+}
+function genSh4(){
+  const intR = randInt(0,8), tenR = randInt(0,9);
+  const r = intR*10+tenR;
+  const d = randInt(2,9);
+  const dividendTenths = r*d;
+  const dividendDisp = (dividendTenths/10).toFixed(1);
+  const q = `${dividendDisp} ÷ ${d}`;
+  const lines = [ [ BN(intR), T('.'), BN(tenR) ] ];
+  return { q, answer:r/10, mainRule:'sh_m4', subRules:[], lines };
+}
+
+/* ============ generators: 分数の計算(小学校) ============ */
+function genBn1(){
+  const c = randInt(2,9), a = randInt(1,c-1), b = randInt(1,c-1);
+  const q = `${a}/${c} + ${b}/${c}`;
+  const lines = [ [ BN(a+b), T(`/${c}`) ] ];
+  return { q, answer:{num:a+b, den:c}, mainRule:'bn_m1', subRules:[], lines };
+}
+function genBn2(){
+  const c = randInt(3,9), a = randInt(2,c-1), b = randInt(1,a-1);
+  const q = `${a}/${c} - ${b}/${c}`;
+  const lines = [ [ BN(a-b), T(`/${c}`) ] ];
+  return { q, answer:{num:a-b, den:c}, mainRule:'bn_m2', subRules:[], lines };
+}
+function genBn3(){
+  const denoms = [2,3,4,5,6];
+  let c1 = denoms[randInt(0,4)], c2 = denoms[randInt(0,4)];
+  while(c2===c1) c2 = denoms[randInt(0,4)];
+  const L = lcm(c1,c2);
+  const a = randInt(1,c1-1)||1, b = randInt(1,c2-1)||1;
+  const sumNum = a*(L/c1) + b*(L/c2);
+  const q = `${a}/${c1} + ${b}/${c2}`;
+  const lines = [ [ BN(sumNum), T('/'), BN(L) ] ];
+  return { q, answer:{num:sumNum, den:L}, mainRule:'bn_m3', subRules:['bn_s1'], lines };
+}
+function genBn4(){
+  const a=randInt(1,9), b=randInt(2,9), c=randInt(1,9), d=randInt(2,9);
+  const q = `${a}/${b} × ${c}/${d}`;
+  const lines = [ [ BN(a*c), T('/'), BN(b*d) ] ];
+  return { q, answer:{num:a*c, den:b*d}, mainRule:'bn_m4', subRules:[], lines };
+}
+function genBn5(){
+  const a=randInt(1,9), b=randInt(2,9), c=randInt(1,9), d=randInt(2,9);
+  const q = `${a}/${b} ÷ ${c}/${d}`;
+  const lines = [ [ BN(a*d), T('/'), BN(b*c) ] ];
+  return { q, answer:{num:a*d, den:b*c}, mainRule:'bn_m5', subRules:['bn_s2'], lines };
+}
+
+/* ============ generators: 素因数分解 ============ */
+function genSi1(){
+  const primes = [2,3,5,7];
+  let i1=randInt(0,3), i2=randInt(0,3); while(i2===i1) i2=randInt(0,3);
+  let p=primes[i1], qp=primes[i2];
+  if(p>qp){ const t=p; p=qp; qp=t; }
+  const e1=randInt(1,2), e2=randInt(1,2);
+  const N = Math.pow(p,e1)*Math.pow(qp,e2);
+  const q = `${N}`;
+  const lines = [ [ BN(p), T('^'), BN(e1), T(' × '), BN(qp), T('^'), BN(e2) ] ];
+  return { q, answer:{p,e1,qp,e2}, mainRule:'si_m1', subRules:['si_s1'], lines };
+}
+function genSi2(){
+  const p = [2,3,5][randInt(0,2)];
+  const g = randInt(1,2);
+  const gcdVal = Math.pow(p,g);
+  const extras = [2,3,5,7,11].filter(x=>x!==p);
+  let i1=randInt(0,extras.length-1), i2=randInt(0,extras.length-1);
+  while(i2===i1) i2=randInt(0,extras.length-1);
+  const qa=extras[i1], qb=extras[i2];
+  const A = gcdVal*qa, B = gcdVal*qb;
+  const q = `${A} と ${B} の最大公約数`;
+  const lines = [ [ BN(gcdVal) ] ];
+  return { q, answer:gcdVal, mainRule:'si_m2', subRules:[], lines };
+}
+
+/* ============ generators: 正負の数(追加) ============ */
+function genSf6(){
+  let a = nonZero(-9,9); while(Math.abs(a)===1) a=nonZero(-9,9);
+  const n = [2,3][randInt(0,1)];
+  const value = Math.pow(a,n);
+  const q = `(${a})^${n}`;
+  const lines = [ [ T('= '), BS(value>=0?'+':'-'), BN(Math.abs(value)) ] ];
+  return { q, answer:value, mainRule:'sf_m6', subRules:['sf_s3'], lines };
+}
+function genSf7(){
+  const useDiv = Math.random()<0.5;
+  const a = nonZero(-9,9);
+  const op1 = Math.random()<0.5 ? '+' : '-';
+  let b,c,bc,qMid;
+  if(useDiv){
+    c = nonZero(-9,9); const k = nonZero(-9,9); b = c*k; bc = k; qMid = `${b} ÷ ${c}`;
+  } else {
+    b = nonZero(-9,9); c = nonZero(-9,9); bc = b*c; qMid = `${b} × ${c}`;
+  }
+  const result = op1==='+' ? a+bc : a-bc;
+  const q = `${a} ${op1} ${qMid}`;
+  const lines = [ [ T(`${a} ${op1} `), BN(bc) ], [ T('= '), BN(result) ] ];
+  return { q, answer:result, mainRule:'sf_m7', subRules: useDiv?['sf_s2']:[], lines, isComboUse:true };
+}
+
+/* ============ generators: 文字式(追加) ============ */
+function genMj7(){
+  const c = randInt(2,6);
+  const a = randInt(-9,9), b = randInt(-9,9), d = randInt(-9,9), e = randInt(-9,9);
+  const q = `(${coeffStr(a)} ${fmtOp(b)})/${c} + (${coeffStr(d)} ${fmtOp(e)})/${c}`;
+  const sumCoef=a+d, sumConst=b+e;
+  const lines = [ [ T('('), BN(sumCoef, coeffStr), T(' '), BN(sumConst, fmtOp), T(`)/${c}`) ] ];
+  return { q, answer:{coef:sumCoef,const:sumConst}, mainRule:'mj_m7', subRules:[], lines };
+}
+
+/* ============ generators: 一次方程式(追加) ============ */
+function genEq7(){
+  const a = coeffPick(-9,9), c = randInt(2,6), x = randInt(-9,9), d = randInt(-9,9);
+  const numeratorNeeded = c*d;
+  const b = numeratorNeeded - a*x;
+  const q = `(${coeffStr(a)} ${fmtOp(b)})/${c} = ${d}`;
+  const lines = [
+    [ T(`${coeffStr(a)} ${fmtOp(b)} = `), BN(c*d) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return { q, answer:x, mainRule:'eq_m7', subRules:[], lines };
+}
+function genEq8(){
+  const a = randInt(1,9), b = randInt(1,9), k = randInt(1,9);
+  const c = a*k, x = b*k;
+  const q = `${a} : ${b} = ${c} : x`;
+  const lines = [
+    [ T(`${coeffStr(a)} = `), BN(b*c) ],
+    [ T('x = '), BN(x) ]
+  ];
+  return { q, answer:x, mainRule:'eq_m8', subRules:[], lines, isComboUse:true };
+}
+
+/* ============ generators: 式の計算・中2(追加) ============ */
+function genS2_6(){
+  const denoms=[2,3,4,6];
+  let p=denoms[randInt(0,3)], qd=denoms[randInt(0,3)];
+  while(qd===p) qd=denoms[randInt(0,3)];
+  const L = lcm(p,qd);
+  const a = randInt(-9,9), b = randInt(-9,9);
+  const q = `(x ${fmtOp(a)})/${p} + (x ${fmtOp(b)})/${qd}`;
+  const coefResult = L/p + L/qd;
+  const constResult = (L/p)*a + (L/qd)*b;
+  const lines = [ [ T('('), BN(coefResult, coeffStr), T(' '), BN(constResult, fmtOp), T(`)/${L}`) ] ];
+  return { q, answer:{coef:coefResult,const:constResult}, mainRule:'s2_m6', subRules:['s2_s2'], lines };
+}
+function genS2_7(){
+  const a = randInt(2,6);
+  const yCoefResult = nonZero(-6,6), constResult = randInt(-9,9);
+  const b = -a*yCoefResult, c = a*constResult;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${c}  (xについて解け)`;
+  const lines = [ [ T('x = '), BN(constResult), T(' '), BN(yCoefResult, v=>`${fmtOp(v)}y`) ] ];
+  return { q, answer:{coef:yCoefResult,const:constResult}, mainRule:'s2_m7', subRules:[], lines };
+}
+
+/* ============ generators: 連立方程式(追加) ============ */
+function genRn5(){
+  const x0 = nonZero(-9,9), y0 = nonZero(-9,9);
+  const a = coeffPick(-9,9), b = nonZero(-6,6);
+  const C = a*x0+b*y0;
+  const k = [1,-1,2][randInt(0,2)];
+  const c = a+k*y0, d = b-k*x0;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${termStr(c,'x')} ${fmtOp(d)}y = ${C}`;
+  const lines = [ [ T('x = '), BN(x0) ], [ T('y = '), BN(y0) ] ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m5', subRules:[], lines, isCombo:true };
+}
+function genRn6(){
+  const a = nonZero(-6,6), b = randInt(-9,9);
+  const x0 = randInt(-9,9), y0 = a*x0-b;
+  const p = coeffPick(-9,9), cy = nonZero(-6,6);
+  const rhs2 = p*x0+cy*y0;
+  const q = `${termStr(a,'x')} - y = ${b}\n${termStr(p,'x')} ${fmtOp(cy)}y = ${rhs2}`;
+  const lines = [
+    [ T('⟹ y = '), BN(a, coeffStr), T(' '), BN(-b, fmtOp) ],
+    [ BN(p+cy*a, n=>termStr(n,'x')), T(' = '), BN(rhs2+cy*b) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m6', subRules:[], lines, isCombo:true };
+}
+
+/* ============ generators: 展開 ============ */
+function genTk1(){
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const a=Math.min(rawA,rawB), b=Math.max(rawA,rawB);
+  const q = `(x ${fmtOp(a)})(x ${fmtOp(b)})`;
+  const lines = [ [ T('= x² '), BN(a+b, fmtOp), T('x '), BN(a*b, fmtOp) ] ];
+  return { q, answer:{coef:a+b,const:a*b}, mainRule:'tk_m1', subRules:['tk_s1'], lines };
+}
+function genTk2(){
+  const a = nonZero(1,9);
+  const q = `(x + ${a})²`;
+  const lines = [ [ T('= x² '), BN(2*a, fmtOp), T('x '), BN(a*a, fmtOp) ] ];
+  return { q, answer:{coef:2*a,const:a*a}, mainRule:'tk_m2', subRules:[], lines };
+}
+function genTk3(){
+  const a = nonZero(1,9);
+  const q = `(x − ${a})²`;
+  const lines = [ [ T('= x² '), BN(-2*a, fmtOp), T('x '), BN(a*a, fmtOp) ] ];
+  return { q, answer:{coef:-2*a,const:a*a}, mainRule:'tk_m3', subRules:[], lines };
+}
+function genTk4(){
+  const a = randInt(2,12);
+  const q = `(x + ${a})(x − ${a})`;
+  const lines = [ [ T('= x² '), BN(-(a*a), fmtOp) ] ];
+  return { q, answer:-(a*a), mainRule:'tk_m4', subRules:[], lines };
+}
+function genTk5(){
+  const a = nonZero(-9,9), b = nonZero(-9,9);
+  const q = `(x ${fmtOp(a)} ${fmtOp(b)})(x ${fmtOp(a)} ${fmtOp(-b)})`;
+  const coefX = 2*a, constX = a*a-b*b;
+  const lines = [
+    [ T('⟹ (x '), T(a>=0?'+ ':'− '), BN(Math.abs(a)), T(')² − '), BN(b*b) ],
+    [ T('= x² '), BN(coefX, fmtOp), T('x '), BN(constX, fmtOp) ]
+  ];
+  return { q, answer:{coef:coefX,const:constX}, mainRule:'tk_m5', subRules:[], lines, isCombo:true };
+}
+
+/* ============ generators: 平方根(追加) ============ */
+function genHk6(){
+  const p = randInt(2,9), qr = randInt(2,9), n = nonZero(-6,6);
+  const q = `√${p}(√${qr} ${fmtOp(n)})`;
+  const lines = [ [ T('√'), BN(p*qr), T(' '), BN(n, v=>`${fmtOp(v)}√${p}`) ] ];
+  return { q, answer:{under:p*qr, coef:n}, mainRule:'hk_m6', subRules:[], lines };
+}
+function genHk7(){
+  const a = randInt(2,9), b = nonZero(-6,6);
+  const q = `(√${a} ${fmtOp(b)})(√${a} ${fmtOp(-b)})`;
+  const result = a - b*b;
+  const lines = [ [ T('= '), BN(result) ] ];
+  return { q, answer:result, mainRule:'hk_m7', subRules:[], lines };
+}
+function genHk8(){
+  const a = randInt(2,9), b = randInt(-9,9);
+  const q = `x = √${a} のとき、x² ${fmtOp(b)} の値`;
+  const result = a+b;
+  const lines = [ [ BN(result) ] ];
+  return { q, answer:result, mainRule:'hk_m8', subRules:[], lines };
+}
+
+/* ============ generators: 二次方程式(追加) ============ */
+function genNj5(){
+  const b = nonZero(-9,9);
+  const q = `x² ${fmtOp(b)}x = 0`;
+  const lines = [
+    [ T('x(x '), T(b>=0?'+ ':'− '), BN(Math.abs(b)), T(') = 0') ],
+    [ T('x = 0, '), BN(-b) ]
+  ];
+  return { q, answer:{r1:0,r2:-b}, mainRule:'nj_m5', subRules:[], lines, isCombo:true };
+}
+function genNj6(){
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const r1=Math.min(rawA,rawB), r2=Math.max(rawA,rawB);
+  const SUM=r1+r2, PROD=r1*r2;
+  const C = coeffPick(-9,9), D = randInt(-9,9);
+  const A = C-SUM, Bc = D+PROD;
+  const q = `x² ${fmtOp(A)}x ${fmtOp(Bc)} = ${termStr(C,'x')} ${fmtOp(D)}`;
+  const lines = [
+    [ T('⟹ x² '), T(-SUM>=0?'+ ':'− '), BN(Math.abs(SUM)), T('x '), T(PROD>=0?'+ ':'− '), BN(Math.abs(PROD)), T(' = 0') ],
+    [ T('x = '), BN(r1), T(', '), BN(r2) ]
+  ];
+  return { q, answer:{r1,r2}, mainRule:'nj_m6', subRules:[], lines, isCombo:true };
+}
+function genNj7(){
+  const p = nonZero(-9,9), cExtra = randInt(-9,9);
+  const b = 2*p;
+  const qVal = p*p - cExtra;
+  const q = `x² ${fmtOp(b)}x ${fmtOp(cExtra)} = 0`;
+  const lines = [ [ T('⟹ (x '), T(p>=0?'+ ':'− '), BN(Math.abs(p)), T(')² = '), BN(qVal) ] ];
+  return { q, answer:{shift:p, under:qVal}, mainRule:'nj_m7', subRules:['nj_s1'], lines };
+}
+function genNj8(){
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const r1=Math.min(rawA,rawB), r2=Math.max(rawA,rawB);
+  const SUM=r1+r2, PROD=r1*r2;
+  const k = [2,3][randInt(0,1)];
+  const scaledA = k, scaledB = k*(-SUM), scaledC = k*PROD;
+  const q = `${scaledA}x² ${fmtOp(scaledB)}x ${fmtOp(scaledC)} = 0`;
+  const lines = [
+    [ T('⟹ 両辺を'), BN(k), T('でわる') ],
+    [ T('x² '), T(-SUM>=0?'+ ':'− '), BN(Math.abs(SUM)), T('x '), T(PROD>=0?'+ ':'− '), BN(Math.abs(PROD)), T(' = 0') ],
+    [ T('x = '), BN(r1), T(', '), BN(r2) ]
+  ];
+  return { q, answer:{r1,r2}, mainRule:'nj_m8', subRules:[], lines, isCombo:true };
+}
+
+/* ============ generators: 連立方程式(追加2) ============ */
+function genRn7(){
+  let a=nonZero(-6,6), c=nonZero(-6,6); while(c===a) c=nonZero(-6,6);
+  const b=nonZero(-6,6);
+  const x0=randInt(-6,6), y0=randInt(-6,6);
+  const e=a*x0+b*y0, f=c*x0+b*y0;
+  const q = `${coeffStrDiv(a,10)} ${fmtOpDiv(b,10)}y = ${(e/10).toFixed(1)}\n${coeffStrDiv(c,10)} ${fmtOpDiv(b,10)}y = ${(f/10).toFixed(1)}`;
+  const lines = [
+    [ BN(a-c, n=>termStr(n,'x')), T(' = '), BN(e-f) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m7', subRules:[], lines, isCombo:true };
+}
+function genRn8(){
+  const p = [2,3,4][randInt(0,2)];
+  const k = randInt(-6,6), x0 = p*k, y0 = randInt(-6,6);
+  const r1 = k+y0;
+  const c = coeffPick(-9,9), d = nonZero(-6,6);
+  const r2 = c*x0+d*y0;
+  const q = `x/${p} + y = ${r1}\n${termStr(c,'x')} ${fmtOp(d)}y = ${r2}`;
+  const lines = [
+    [ T('⟹ x + '), BN(p), T('y = '), BN(p*r1) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m8', subRules:[], lines, isCombo:true };
+}
+function genRn9(){
+  const p = [2,3][randInt(0,1)];
+  const r1 = randInt(-6,6);
+  const sumXY = r1*p;
+  const x0 = randInt(-6,6), y0 = sumXY-x0;
+  const c = coeffPick(-9,9), d = nonZero(-6,6);
+  const r2 = c*x0+d*y0;
+  const q = `(x+y)/${p} = ${r1}\n${termStr(c,'x')} ${fmtOp(d)}y = ${r2}`;
+  const lines = [
+    [ T('⟹ x + y = '), BN(sumXY) ],
+    [ T('x = '), BN(x0) ],
+    [ T('y = '), BN(y0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m9', subRules:[], lines, isCombo:true };
+}
+function genRn10(){
+  let k1=[2,3,4][randInt(0,2)], k2=[2,3,4][randInt(0,2)];
+  while(k2===k1) k2=[2,3,4][randInt(0,2)];
+  const base = randInt(2,5);
+  const m = k1*k2*base;
+  const a = m/k1, c = m/k2;
+  let b=nonZero(-9,9), d=nonZero(-9,9);
+  while(b*k1-d*k2===0){ b=nonZero(-9,9); d=nonZero(-9,9); }
+  const x0 = randInt(-15,15), y0 = randInt(-15,15);
+  const e = a*x0+b*y0, f = c*x0+d*y0;
+  const q = `${termStr(a,'x')} ${fmtOp(b)}y = ${e}\n${termStr(c,'x')} ${fmtOp(d)}y = ${f}`;
+  const lines = [
+    [ T('式①を'), BN(k1), T('倍、式②を'), BN(k2), T('倍する') ],
+    [ BN(b*k1-d*k2, n=>termStr(n,'y')), T(' = '), BN(e*k1-f*k2) ],
+    [ T('y = '), BN(y0) ],
+    [ T('x = '), BN(x0) ]
+  ];
+  return { q, answer:{x:x0,y:y0}, mainRule:'rn_m10', subRules:[], lines, isCombo:true };
+}
+
+/* ============ generators: 展開(追加) ============ */
+function genTk6(){
+  const bases = [10,20,30,40,50,60,70,80,90,100];
+  const base = bases[randInt(0,bases.length-1)];
+  const delta = nonZero(-9,9);
+  const N = base+delta;
+  const q = `${N}² を工夫して計算する (${N} = ${base} ${fmtOp(delta)})`;
+  const lines = [
+    [ T('= '), BN(base*base), T(' '), BN(2*base*delta, fmtOp), T(' '), BN(delta*delta, fmtOp) ],
+    [ T('= '), BN(N*N) ]
+  ];
+  return { q, answer:N*N, mainRule:'tk_m6', subRules:[], lines, isCombo:true };
+}
+
+/* ============ generators: 因数分解(追加) ============ */
+function genFc6(){
+  const k = randInt(2,4);
+  let rawA=nonZero(-9,9), rawB=nonZero(-9,9);
+  while(rawA===rawB) rawB=nonZero(-9,9);
+  const a=Math.min(rawA,rawB), b=Math.max(rawA,rawB);
+  const SUM=a+b, PROD=a*b;
+  const q = `${k}x² ${fmtOp(k*SUM)}x ${fmtOp(k*PROD)}`;
+  const lines = [
+    [ T('⟹ '), BN(k), T('(x² '), BN(SUM, fmtOp), T('x '), BN(PROD, fmtOp), T(')') ],
+    [ T('= '), R(0), T('(x '), T(a>=0?'+ ':'− '), BN(Math.abs(a)), T(')(x '), T(b>=0?'+ ':'− '), BN(Math.abs(b)), T(')') ]
+  ];
+  return { q, answer:{k,a,b}, mainRule:'fc_m6', subRules:[], lines, isCombo:true };
+}
+function genFc7(){
+  const a = nonZero(1,9);
+  const q = `(x+y)² ${fmtOp(2*a)}(x+y) ${fmtOp(a*a)}`;
+  const lines = [ [ T('= (x+y '), T(a>=0?'+ ':'− '), BN(Math.abs(a)), T(')²') ] ];
+  return { q, answer:a, mainRule:'fc_m7', subRules:[], lines, isCombo:true };
+}
+function genFc8(){
+  const mid = randInt(20,90);
+  const delta = randInt(1,9);
+  const A = mid+delta, B = mid-delta;
+  const product = A*B;
+  const q = `${A} × ${B} を工夫して計算する`;
+  const lines = [
+    [ T('= '), BN(mid), T('² − '), BN(delta), T('²') ],
+    [ T('= '), BN(mid*mid), T(' − '), BN(delta*delta) ],
+    [ T('= '), BN(product) ]
+  ];
+  return { q, answer:product, mainRule:'fc_m8', subRules:[], lines, isCombo:true };
+}
+function genFc9(){
+  let x0=nonZero(-9,9), y0=nonZero(-9,9); while(y0===x0) y0=nonZero(-9,9);
+  const value = x0*x0 - y0*y0;
+  const sumXY = x0+y0, diffXY = x0-y0;
+  const q = `x=${x0}, y=${y0} のとき、x²−y² の値`;
+  const lines = [
+    [ T('= ('), BN(sumXY), T(')('), BN(diffXY), T(')') ],
+    [ T('= '), BN(value) ]
+  ];
+  return { q, answer:value, mainRule:'fc_m9', subRules:[], lines, isCombo:true };
+}
+function genFc10(){
+  const pick = randInt(1,5);
+  let r;
+  if(pick===1) r=genFc1();
+  else if(pick===2) r=genFc2();
+  else if(pick===3) r=genFc3();
+  else if(pick===4) r=genFc4();
+  else r=genFc5();
+  return { ...r, mainRule:'fc_m10', subRules:[] };
+}
+
 /* ============ unit / stage definitions ============ */
 const GRADES = [
+  {grade:0, label:'小学校'},
   {grade:1, label:'中学1年'},
   {grade:2, label:'中学2年'},
   {grade:3, label:'中学3年'},
 ];
 const UNITS = [
+  {id:'shousu', title:'小数の計算', subtitle:'小数のたし算・ひき算・かけ算・わり算', grade:0, icon:'0.1'},
+  {id:'bunsu', title:'分数の計算', subtitle:'分数のたし算・ひき算・かけ算・わり算', grade:0, icon:'½'},
   {id:'seifu', title:'正負の数', subtitle:'負の数の計算に慣れよう', grade:1, icon:'±'},
+  {id:'soinsuu', title:'素因数分解', subtitle:'数を素数の積に分ける', grade:1, icon:'p^e'},
   {id:'moji', title:'文字式の計算', subtitle:'式を整理するコツをつかもう', grade:1, icon:'x'},
   {id:'houteishiki', title:'一次方程式', subtitle:'式のつりあいを保ちながら解こう', grade:1, icon:'='},
   {id:'shiki2', title:'式の計算(中2)', subtitle:'単項式・多項式の計算を広げよう', grade:2, icon:'x²'},
   {id:'renritsu', title:'連立方程式', subtitle:'2つの式を組み合わせて解こう', grade:2, icon:'x,y'},
+  {id:'tenkai', title:'展開', subtitle:'かっこをはずして式を広げよう', grade:3, icon:'( )→'},
   {id:'inzuu', title:'因数分解', subtitle:'式を積の形にほどこう', grade:3, icon:'( )'},
   {id:'heihoukon', title:'平方根', subtitle:'√の扱いに慣れよう', grade:3, icon:'√'},
   {id:'nijihou', title:'二次方程式', subtitle:'これまでの解き方を総動員しよう', grade:3, icon:'x²='},
 ];
 const STAGE_DEFS = {
+  shousu:[
+    {ruleId:'sh_m1', title:'小数のたし算', example:'0.a + 0.b', gen:genSh1},
+    {ruleId:'sh_m2', title:'小数のひき算', example:'0.a − 0.b', gen:genSh2},
+    {ruleId:'sh_m3', title:'小数のかけ算', example:'0.a × n', gen:genSh3},
+    {ruleId:'sh_m4', title:'小数のわり算', example:'小数 ÷ n', gen:genSh4},
+  ],
+  bunsu:[
+    {ruleId:'bn_m1', title:'同分母の分数のたし算', example:'a/c + b/c', gen:genBn1},
+    {ruleId:'bn_m2', title:'同分母の分数のひき算', example:'a/c − b/c', gen:genBn2},
+    {ruleId:'bn_m3', title:'異分母の分数のたし算(通分)', example:'a/c1 + b/c2', gen:genBn3},
+    {ruleId:'bn_m4', title:'分数のかけ算', example:'a/b × c/d', gen:genBn4},
+    {ruleId:'bn_m5', title:'分数のわり算', example:'a/b ÷ c/d', gen:genBn5},
+  ],
   seifu:[
     {ruleId:'sf_m1', title:'同符号の数の加法', example:'(+a)+(+b) / (−a)+(−b)', gen:genSf1},
     {ruleId:'sf_m2', title:'異符号の数の加法', example:'(+a)+(−b)', gen:genSf2},
     {ruleId:'sf_m3', title:'減法をたし算に直す', example:'a − b = a + (−b)', gen:genSf3},
     {ruleId:'sf_m4', title:'乗法・除法の符号', example:'(±a)×(±b) / (±a)÷(±b)', gen:genSf4},
     {ruleId:'sf_m5', title:'加減の混じった計算', example:'a − b + c', gen:genSf5},
+    {ruleId:'sf_m6', title:'累乗', example:'(−a)ⁿ', gen:genSf6},
+    {ruleId:'sf_m7', title:'四則混合の計算', example:'a ± b×c / a ± b÷c', gen:genSf7, isCombo:true},
+  ],
+  soinsuu:[
+    {ruleId:'si_m1', title:'素因数分解する', example:'N = pᵃ × qᵇ', gen:genSi1},
+    {ruleId:'si_m2', title:'素因数分解を利用する(最大公約数)', example:'2数の最大公約数', gen:genSi2},
   ],
   moji:[
     {ruleId:'mj_m1', title:'同類項をまとめる', example:'a x + b x', gen:genMj1},
@@ -1085,6 +1664,7 @@ const STAGE_DEFS = {
     {ruleId:'mj_m4', title:'1次式と数のかけ算', example:'a(b x + c)', gen:genMj4},
     {ruleId:'mj_m5', title:'1次式を数でわる', example:'(a x + b) ÷ c', gen:genMj5},
     {ruleId:'mj_m6', title:'かっこが2つある式の整理', example:'a(bx+c)+d(ex+f)', gen:genMj6, isCombo:true},
+    {ruleId:'mj_m7', title:'一次式を含む分数の計算', example:'(ax+b)/c + (dx+e)/c', gen:genMj7},
   ],
   houteishiki:[
     {ruleId:'eq_m1', title:'たし算・ひき算の方程式', example:'x + a = b', gen:genEq1},
@@ -1093,6 +1673,8 @@ const STAGE_DEFS = {
     {ruleId:'eq_m4', title:'xが両辺にある方程式', example:'a x + b = c x + d', gen:genEq4},
     {ruleId:'eq_m5', title:'かっこをはずす方程式', example:'a(x + b) = c', gen:genEq5},
     {ruleId:'eq_m6', title:'小数・分数をふくむ方程式', example:'0.3x+1=0.5x-1 / x/4+2=5', gen:genEq6},
+    {ruleId:'eq_m7', title:'分子に一次式を持つ分数の方程式', example:'(ax+b)/c = d', gen:genEq7, isCombo:true},
+    {ruleId:'eq_m8', title:'比例式', example:'a:b = c:x', gen:genEq8, isCombo:true},
   ],
   shiki2:[
     {ruleId:'s2_m1', title:'単項式の乗法', example:'a x × b x / a x × b y', gen:genS2_1},
@@ -1100,12 +1682,28 @@ const STAGE_DEFS = {
     {ruleId:'s2_m3', title:'単項式と多項式の乗法', example:'a(b x + c)', gen:genS2_3},
     {ruleId:'s2_m4', title:'多項式を単項式でわる', example:'(a x² + b x) ÷ c x', gen:genS2_4},
     {ruleId:'s2_m5', title:'式の値(代入)', example:'x=kのとき a x + b', gen:genS2_5},
+    {ruleId:'s2_m6', title:'分数の加減(異分母)', example:'(x+a)/p + (x+b)/q', gen:genS2_6},
+    {ruleId:'s2_m7', title:'等式の変形(xについて解く)', example:'a x + b y = c', gen:genS2_7},
   ],
   renritsu:[
     {ruleId:'rn_m1', title:'代入法', example:'y=mx+k と px+qy=r', gen:genRn1},
     {ruleId:'rn_m2', title:'加減法(そのまま)', example:'ax+by=e, cx+by=f', gen:genRn2},
     {ruleId:'rn_m3', title:'加減法(片方を何倍か)', example:'式①をk倍してそろえる', gen:genRn3, isCombo:true},
     {ruleId:'rn_m4', title:'加減法(両方を何倍か)', example:'式①②を別の数倍してそろえる', gen:genRn4, isCombo:true},
+    {ruleId:'rn_m5', title:'A=B=C の形の連立方程式', example:'ax+by=cx+dy=C', gen:genRn5, isCombo:true},
+    {ruleId:'rn_m6', title:'等式の変形が必要な連立方程式', example:'ax-y=b, px+qy=r', gen:genRn6, isCombo:true},
+    {ruleId:'rn_m7', title:'小数を含む連立方程式', example:'0.ax+0.by=e', gen:genRn7, isCombo:true},
+    {ruleId:'rn_m8', title:'分数を含む連立方程式', example:'x/p + y = r', gen:genRn8, isCombo:true},
+    {ruleId:'rn_m9', title:'多項式の分数を含む連立方程式', example:'(x+y)/p = r', gen:genRn9, isCombo:true},
+    {ruleId:'rn_m10', title:'大きな数の連立方程式', example:'大きい係数の加減法', gen:genRn10, isCombo:true},
+  ],
+  tenkai:[
+    {ruleId:'tk_m1', title:'(x+a)(x+b)の展開', example:'(x+a)(x+b)', gen:genTk1},
+    {ruleId:'tk_m2', title:'(x+a)²の展開', example:'(x+a)²', gen:genTk2},
+    {ruleId:'tk_m3', title:'(x−a)²の展開', example:'(x−a)²', gen:genTk3},
+    {ruleId:'tk_m4', title:'(x+a)(x−a)の展開', example:'(x+a)(x−a)', gen:genTk4},
+    {ruleId:'tk_m5', title:'置き換えが必要な展開', example:'(x+a+b)(x+a−b)', gen:genTk5, isCombo:true},
+    {ruleId:'tk_m6', title:'計算における展開の利用', example:'102² のような計算', gen:genTk6, isCombo:true},
   ],
   inzuu:[
     {ruleId:'fc_m1', title:'共通因数をくくり出す', example:'a x + a y', gen:genFc1},
@@ -1113,6 +1711,11 @@ const STAGE_DEFS = {
     {ruleId:'fc_m3', title:'平方の公式(+)', example:'x²+2ax+a²', gen:genFc3},
     {ruleId:'fc_m4', title:'平方の公式(−)', example:'x²−2ax+a²', gen:genFc4},
     {ruleId:'fc_m5', title:'2乗の差', example:'x²−a²', gen:genFc5},
+    {ruleId:'fc_m6', title:'公式の前に共通因数をくくり出す', example:'k x²+…', gen:genFc6, isCombo:true},
+    {ruleId:'fc_m7', title:'置き換えが必要な因数分解', example:'(x+y)²+2(x+y)+1', gen:genFc7, isCombo:true},
+    {ruleId:'fc_m8', title:'因数分解の利用(計算)', example:'53×47 のような計算', gen:genFc8, isCombo:true},
+    {ruleId:'fc_m9', title:'展開・因数分解後に代入', example:'x²−y² に代入', gen:genFc9, isCombo:true},
+    {ruleId:'fc_m10', title:'使い分けて因数分解する', example:'5パターンをまとめて練習', gen:genFc10, isCombo:true},
   ],
   heihoukon:[
     {ruleId:'hk_m1', title:'√の乗法', example:'√a × √b', gen:genHk1},
@@ -1120,20 +1723,31 @@ const STAGE_DEFS = {
     {ruleId:'hk_m3', title:'根号の中を簡単にする', example:'√(a²b)', gen:genHk3},
     {ruleId:'hk_m4', title:'同じ根号の加法・減法', example:'p√c + q√c', gen:genHk4},
     {ruleId:'hk_m5', title:'分母の有理化', example:'1/√a', gen:genHk5},
+    {ruleId:'hk_m6', title:'√の分配法則', example:'√a(√b + n)', gen:genHk6},
+    {ruleId:'hk_m7', title:'乗法公式(√を含む)', example:'(√a+b)(√a−b)', gen:genHk7},
+    {ruleId:'hk_m8', title:'式の値(√を代入)', example:'x=√aのとき x²+n', gen:genHk8},
   ],
   nijihou:[
     {ruleId:'nj_m1', title:'x²=aの解き方', example:'x² = a', gen:genNj1},
     {ruleId:'nj_m2', title:'(x+p)²=qの解き方', example:'(x+p)² = q', gen:genNj2},
     {ruleId:'nj_m3', title:'因数分解を利用する解法', example:'x²+(a+b)x+ab=0', gen:genNj3, isCombo:true},
     {ruleId:'nj_m4', title:'解の公式', example:'a x²+b x+c=0', gen:genNj4, isCombo:true},
+    {ruleId:'nj_m5', title:'くくり出しの因数分解で解く', example:'x²+bx=0', gen:genNj5, isCombo:true},
+    {ruleId:'nj_m6', title:'整理して因数分解で解く', example:'x²+bx=cx+d', gen:genNj6, isCombo:true},
+    {ruleId:'nj_m7', title:'平方完成のための変形', example:'x²+2px+c=0', gen:genNj7},
+    {ruleId:'nj_m8', title:'係数を簡単にしてから解く', example:'k x²+…=0', gen:genNj8, isCombo:true},
   ],
 };
 const SUB_RULES_BY_UNIT = {
-  seifu:['sf_s1','sf_s2'],
+  shousu:['sh_s1'],
+  bunsu:['bn_s1','bn_s2'],
+  seifu:['sf_s1','sf_s2','sf_s3'],
+  soinsuu:['si_s1'],
   moji:['mj_s1','mj_s2'],
   houteishiki:['eq_s1','eq_s2','eq_s3','eq_s4'],
-  shiki2:['s2_s1'],
+  shiki2:['s2_s1','s2_s2'],
   renritsu:['rn_s1'],
+  tenkai:['tk_s1'],
   inzuu:['fc_s1','fc_s2'],
   heihoukon:['hk_s1'],
   nijihou:['nj_s1'],
