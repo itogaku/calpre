@@ -383,7 +383,8 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .preview.editing section.sheet{position:relative}
 .edtools{position:absolute;top:0;right:0;transform:translateY(-100%);z-index:5;display:flex;gap:3px;font:12px/1 system-ui,sans-serif;background:rgba(255,255,255,.95);padding:2px;border-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 /* 編集中は、ボタンがいつも見えるように問題の上に少しすきまをあける（タブレットでも押せるように） */
-.preview.editing .pb[data-pid],.preview.editing .nyd[data-pid]{margin-top:30px}
+.preview.editing .pb[data-pid],.preview.editing .nyd[data-pid],.preview.editing .nyi[data-pid]{margin-top:30px}
+.preview.editing .nyi{position:relative;outline:1px dashed #dfe5ee;outline-offset:2px}
 .preview.editing .grp > .ins{position:relative}
 .edtools.edgrp{transform:none;top:-4px}
 .preview.editing .pb:hover,.preview.editing .nyd:hover{outline:2px solid #6b8fc7}
@@ -548,7 +549,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     </div>
   </aside>
   <main class="main">
-    <div class="bar"><span class="sum" id="sum"></span><span class="sp"></span><span class="edinfo" id="edinfo" hidden>各問題の上のボタンで操作（設定を変えると元に戻ります）</span><button class="btn" id="undobtn" hidden disabled style="flex:0 0 auto">1つ戻す</button><button class="btn" id="editbtn" aria-pressed="false" style="flex:0 0 auto">問題を編集</button><button class="btn pri" id="print" style="flex:0 0 auto;padding:8px 22px">印刷する</button></div>
+    <div class="bar"><span class="sum" id="sum"></span><span class="sp"></span><span class="edinfo" id="edinfo" hidden>各問題の上の「消す」「別の問題」「文を直す」で変更（印刷すると変えたまま出ます。設定を変えると元に戻ります）</span><button class="btn" id="undobtn" hidden disabled style="flex:0 0 auto">1つ戻す</button><button class="btn" id="editbtn" aria-pressed="false" style="flex:0 0 auto">問題を消す・変える</button><button class="btn pri" id="print" style="flex:0 0 auto;padding:8px 22px">印刷する</button></div>
     <div class="preview" id="preview"></div>
   </main>
 </div>
@@ -1143,7 +1144,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   function topicOfGen(g) { if (!g) return null; if (!TOPIC_OF.size) for (const t of U.topics) for (const x of t.gens) TOPIC_OF.set(x, t); return TOPIC_OF.get(g) || null; }
   function pbAttrs(p, opt) {
     const t = topicOfGen(p._gen); const id = p.__pid || (p.__pid = 'p' + (++PID)); // 授業セットの例題と解説は同じ問題なので同じ目印
-    return ` data-pid="${id}"${t ? ` data-gen="${t.id}/${p._gen.id}"` : ''}${p._w ? ` data-w="${p._w}"` : ''}${opt.hint ? ' data-hint="1"' : ''}${opt.pts ? ` data-pts="${opt.pts}"` : ''}`;
+    return ` data-pid="${id}"${t ? ` data-gen="${t.id}/${p._gen.id}"` : ''}${p._w ? ` data-w="${p._w}"` : ''}${opt.hint ? ' data-hint="1"' : ''}${opt.pts ? ` data-pts="${opt.pts}"` : ''}${(opt.chk || opt.star || opt.rich) ? ` data-o="${opt.chk ? 'c' : ''}${opt.star ? 's' : ''}${opt.rich ? 'r' : ''}"` : ''}`; // data-o: 「別の問題」で作り直すとき、□チェック・★・くわしい解答をそのまま使う
   }
   function probHTML(p, no, opt = {}) {
     const h = p.h === undefined ? 2 : p.h; // 作業スペース（行数、1行≈8mm）
@@ -1426,8 +1427,9 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   function nyFigOut(s) { const m = (s.match(/<svg/g) || []).length === 1 ? s.match(/<svg[\s\S]*?<\/svg>/) : null; return m ? `<div class="qfig">${m[0]}</div>` + s.replace(m[0], '') : s; }
   function nyDaimon(p, no) {
     const N = G.NYUSHI;
-    const items = p.items.map((it, j) => { const sp = N.spaceFor(it); return `<div class="nyq"><span class="qn">(${j + 1})</span><div class="qb">${nyFigOut((it.tag && p.field === 'shomon' ? `<span class="tag">${it.tag}</span>` : '') + it.q)}</div></div><div class="nysp ${sp}">${sp === 'none' ? '' : '<span>答</span>'}<div class="nya"><div>${it.a}</div>${it.ex ? `<div class="kx">${it.ex}</div>` : ''}</div></div>`; }).join('');
-    return `<section class="nyd nys" data-pid="p${++PID}"><div class="nyd-h"><span class="bigno">${no}</span><span class="nyd-t">${p.title}</span><span class="nyd-code">No. ${p.code}</span></div>${p.lead ? `<div class="lead">${p.lead}</div>` : ''}${p.fig ? `<div class="figwrap">${p.fig}</div>` : ''}${items}</section>`;
+    const id = ++PID;
+    const items = p.items.map((it, j) => { const sp = N.spaceFor(it); return `<div class="nyi" data-pid="p${id}s${j}"><div class="nyq"><span class="qn">(${j + 1})</span><div class="qb">${nyFigOut((it.tag && p.field === 'shomon' ? `<span class="tag">${it.tag}</span>` : '') + it.q)}</div></div><div class="nysp ${sp}">${sp === 'none' ? '' : '<span>答</span>'}<div class="nya"><div>${it.a}</div>${it.ex ? `<div class="kx">${it.ex}</div>` : ''}</div></div></div>`; }).join('');
+    return `<section class="nyd nys" data-pid="p${id}" data-ny="${p.code}"><div class="nyd-h"><span class="bigno">${no}</span><span class="nyd-t">${p.title}</span><span class="nyd-code">No. ${p.code}</span></div>${p.lead ? `<div class="lead">${p.lead}</div>` : ''}${p.fig ? `<div class="figwrap">${p.fig}</div>` : ''}${items}</section>`;
   }
   /** 入試: 選んだ分野の大問（模試セットは5題1組） */
   function composeNyushi(cfg) {
@@ -1570,7 +1572,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     return sheets;
   }
 
-  const API = { bandSig, bandGens, compose, makeOne, wordBankHTML, lessonExplain, composeLesson, composeBunkai, resolveItem, composeNyushi, nyList, composeSum, composeWhy, composeLearn, composePractice, composeTest, probHTML, learnBlock, LV_NAME };
+  const API = { nyDaimon, bandSig, bandGens, compose, makeOne, wordBankHTML, lessonExplain, composeLesson, composeBunkai, resolveItem, composeNyushi, nyList, composeSum, composeWhy, composeLearn, composePractice, composeTest, probHTML, learnBlock, LV_NAME };
   Object.assign(G, API);
   if (typeof module !== 'undefined') module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -54638,7 +54640,7 @@ window.fitSheets = function (root) {
   const CIRC = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
   let on = false; let hist = [];
   const snap = () => { const P = pv(); const c = P.cloneNode(true); c.querySelectorAll('.edtools').forEach(x => x.remove()); hist.push(c.innerHTML); if (hist.length > 30) hist.shift(); $('#undobtn').disabled = false; };
-  const TOOL = (kind) => `<div class="edtools" contenteditable="false">${kind === 'pb' ? '<button data-ed="regen" title="同じ型で数を変える">別の問題</button><button data-ed="text" title="問題文・答えを直接書きかえる">文を直す</button>' : ''}<button data-ed="del" title="この問題を消す">消す</button></div>`;
+  const TOOL = (kind) => `<div class="edtools" contenteditable="false">${kind === 'pb' ? '<button data-ed="regen" title="同じ型で数を変える">別の問題</button><button data-ed="text" title="問題文・答えを直接書きかえる">文を直す</button>' : kind === 'ny' ? '<button data-ed="nyregen" title="同じ型で数を変える">別の問題</button>' : ''}<button data-ed="del" title="この問題を消す">消す</button></div>`;
   function decorate() {
     const P = pv(); if (!P) return;
     P.classList.toggle('editing', on);
@@ -54646,6 +54648,7 @@ window.fitSheets = function (root) {
     if (!on) { P.querySelectorAll('[contenteditable="true"]').forEach(e => e.removeAttribute('contenteditable')); window.fitSheets(P); return; }
     P.querySelectorAll('.pb[data-pid]').forEach(e => e.insertAdjacentHTML('afterbegin', TOOL('pb')));
     P.querySelectorAll('.nyd[data-pid]').forEach(e => e.insertAdjacentHTML('afterbegin', TOOL('ny')));
+    P.querySelectorAll('.nyi[data-pid]').forEach(e => { if (e.parentElement.querySelectorAll('.nyi').length > 1) e.insertAdjacentHTML('afterbegin', TOOL('sub')); }); // 入試の小問 (1)(2)… も1つずつ消せる
     P.querySelectorAll('section.sheet').forEach(e => e.insertAdjacentHTML('afterbegin', '<div class="edtools edsheet" contenteditable="false"><button data-ed="delsheet">このページを消す</button></div>'));
     P.querySelectorAll('.grp > .ins').forEach(e => { if (e.parentElement.querySelectorAll('.pb[data-pid]').length > 1) e.insertAdjacentHTML('beforeend', '<div class="edtools edgrp" contenteditable="false"><button data-ed="delgrp" title="この大問の問題をまとめて消す">大問ごと消す</button></div>'); });
   }
@@ -54656,11 +54659,12 @@ window.fitSheets = function (root) {
     const P = pv();
     P.querySelectorAll('.grp').forEach(g => { if (!g.querySelector('.pb')) g.remove(); });
     P.querySelectorAll('.kcq').forEach(k => { if (!k.querySelector('.pb')) k.remove(); });
+    P.querySelectorAll('.nyd').forEach(d => { const its = [...d.querySelectorAll('.nyi')]; if (d.querySelector('.nyq') && !its.length) { d.remove(); return; } its.forEach((x, i) => { const n = x.querySelector('.qn'); if (n) n.textContent = `(${i + 1})`; }); });
     P.querySelectorAll('.pgrid').forEach(gr => { const ps = [...gr.children].filter(x => x.classList.contains('pb')); ps.forEach((pb, i) => { const n = pb.querySelector('.pq .no'); if (n) n.textContent = ps.length > 1 ? `(${i + 1})` : ''; }); });
     P.querySelectorAll('section.sheet').forEach(sh => {
       const bn = [...sh.querySelectorAll('.bigno')]; bn.forEach((b, i) => { const old = b.textContent.trim(); b.textContent = CIRC.includes(old) ? CIRC[i] : String(i + 1); });
       // 問題数（「できた数 / n」）
-      const lab = [...sh.querySelectorAll('.meta-check .lab')].pop(); if (lab && /^\/\s*\d+/.test(lab.textContent.trim())) lab.textContent = `/ ${sh.querySelectorAll('.pb').length}`;
+      const lab = [...sh.querySelectorAll('.meta-check .lab')].pop(); const nItems = sh.querySelectorAll('.pb').length || sh.querySelectorAll('.nyi').length; if (lab && /^\/\s*\d+/.test(lab.textContent.trim())) lab.textContent = lab.textContent.trim().replace(/\d+/, nItems);
     });
     // テストの配点を100点に配り直す
     P.querySelectorAll('section.sheet.test:not(.ansheet)').forEach(sh => {
@@ -54672,6 +54676,14 @@ window.fitSheets = function (root) {
       P.querySelectorAll('section.sheet.test .ptsnote').forEach(n => { n.textContent = ''; });
     });
   }
+  /** 入試の大問を、同じ型・同じ学年とレベルで作り直す（問題用紙と解答用紙の両方） */
+  function nyRegen(pid) {
+    const N = window.NYUSHI; const cs = copies(pid); const src = cs[0]; if (!N || !src || !src.dataset.ny) return;
+    const c0 = N.parseCode(src.dataset.ny); if (!c0 || c0.moshi) return;
+    let p; try { p = N.generate(c0.field, c0.pat, Math.floor(Math.random() * 999999), c0.grade, c0.level); } catch (e) { return; }
+    cs.forEach(c => { const no = (c.querySelector('.bigno') || {}).textContent || '1'; c.insertAdjacentHTML('afterend', window.nyDaimon(p, no)); const nw = c.nextElementSibling; c.remove(); const np = nw.dataset.pid; nw.dataset.pid = pid; nw.querySelectorAll('.nyi[data-pid]').forEach(x => { x.dataset.pid = x.dataset.pid.replace(np, pid); }); });
+    tidy(); decorate();
+  }
   function regen(pid) {
     const cs = copies(pid); const src = cs.find(c => c.dataset.gen); if (!src) return;
     const [tid, gid] = src.dataset.gen.split('/'); const t = U.topics.find(x => x.id === tid); const g = t && t.gens.find(x => x.id === gid); if (!g) return;
@@ -54680,7 +54692,8 @@ window.fitSheets = function (root) {
     cs.forEach(c => {
       const no = (c.querySelector('.pq .no') || {}).textContent || '';
       const q = c.closest('.lsx') ? window.lessonExplain(p) : p;
-      const html = window.probHTML(q, no, { hint: !!c.dataset.hint, pts: c.dataset.pts ? +c.dataset.pts : null });
+      const o = c.dataset.o || ''; const ref = c.querySelector('.qt .ref'); if (ref) Object.defineProperty(q, '_ref', { value: ref.textContent, configurable: true }); if (c.querySelector('.star')) Object.defineProperty(q, '_star', { value: true, configurable: true });
+      const html = window.probHTML(q, no, { hint: !!c.dataset.hint, pts: c.dataset.pts ? +c.dataset.pts : null, chk: o.includes('c'), star: o.includes('s'), rich: o.includes('r') });
       c.insertAdjacentHTML('afterend', html); c.remove();
     });
     decorate();
@@ -54701,7 +54714,7 @@ window.fitSheets = function (root) {
   }
   function init() {
     const btn = $('#editbtn'); if (!btn) return;
-    btn.addEventListener('click', () => { on = !on; btn.setAttribute('aria-pressed', String(on)); btn.textContent = on ? '編集をおわる' : '問題を編集'; $('#edinfo').hidden = !on; $('#undobtn').hidden = !on; decorate(); });
+    btn.addEventListener('click', () => { on = !on; btn.setAttribute('aria-pressed', String(on)); btn.textContent = on ? '編集をおわる' : '問題を消す・変える'; $('#edinfo').hidden = !on; $('#undobtn').hidden = !on; decorate(); });
     $('#undobtn').addEventListener('click', () => { if (!hist.length) return; pv().innerHTML = hist.pop(); $('#undobtn').disabled = !hist.length; decorate(); });
     pv().addEventListener('click', (e) => {
       const b = e.target.closest('[data-ed]'); if (!b || !on) return; e.preventDefault(); e.stopPropagation();
@@ -54711,6 +54724,7 @@ window.fitSheets = function (root) {
       const box = b.closest('[data-pid]'); if (!box) return;
       if (kind === 'del') { copies(box.dataset.pid).forEach(c => c.remove()); tidy(); }
       else if (kind === 'regen') regen(box.dataset.pid);
+      else if (kind === 'nyregen') nyRegen(box.dataset.pid);
       else if (kind === 'text') startText(box);
     });
   }
