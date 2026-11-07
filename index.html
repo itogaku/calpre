@@ -448,6 +448,14 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .bd-pr .qt table{table-layout:fixed;width:100%}
 .band.stack .bd-pr > .bd-h{break-after:avoid;page-break-after:avoid}
 .sheet.ansheet .pb{break-inside:auto} /* 解答用紙は長い証明が1ページ目の空白を生まないよう、問題の途中でも改ページしてよい */
+/* 図の文字のまわりに白いふち（線や目もりが文字にかかっても読めるように） */
+.sheet svg text{paint-order:stroke fill;stroke:#fff;stroke-width:2.4px;stroke-linejoin:round;stroke-opacity:.95}
+/* 図のふちぎりぎりの文字（頂点の名前・目もりの数）が切れないように */
+.sheet svg{overflow:visible}
+/* 計算の級 */
+.kind.k-kk{background:#8a5a12}
+.sheet.kyu .pgrid .pb{min-height:15mm}
+.kkrec{width:100%;font-size:8.5pt}.kkrec td,.kkrec th{height:5.4mm;padding:0 1mm;text-align:center}
 
 /* ===== 入試（大問ジェネレーター統合）: もとのスタイルを .nys の中だけに適用 ===== */
 .nys{--ink:#111;--paper:#fff;--sub:#444;--line:#999;--grid:#d8d8d8;--red:#c0271d;--shade:#c4c4c4;--chip:#f1f1f1;--accent:#111;--mincho:"BIZ UDPMincho","Hiragino Mincho ProN","Yu Mincho",serif;--gothic:var(--f-body);--display:var(--f-head);font-family:var(--mincho);font-size:10.8pt;line-height:1.85}
@@ -498,7 +506,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .nys .sq4{display: inline-grid; grid-template-columns: 1.6em 1.6em; border: 1.5px solid var(--ink); vertical-align: middle; line-height: 1.5; text-align: center; font-size: .9em;}
 .nys .fig{color: var(--ink); overflow: visible;}
 .nys .fig line,.nys .fig polyline,.nys .fig polygon,.nys .fig path,.nys .fig circle,.nys .fig ellipse,.nys .fig rect{stroke: var(--ink); stroke-width: 1.3;}
-.nys .fig text{fill: var(--ink); font-family: var(--mincho); font-size: 13px; stroke: none;}
+.nys .fig text{fill: var(--ink); font-family: var(--mincho); font-size: 13px; paint-order: stroke fill; stroke: #fff; stroke-width: 2.4px; stroke-linejoin: round;}
 .nys .fig text.it{font-style: italic; font-family: "Times New Roman", serif;}
 .nys .fig .grid{stroke: var(--grid); stroke-width: .8;}
 .nys .fig .axis{stroke-width: 1;}
@@ -534,7 +542,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       <div id="gradeWrap"><div class="lbl">学年</div>
         <div class="seg" id="gradeSeg"><button data-g="1">中1</button><button data-g="2">中2</button><button data-g="3">中3</button></div></div>
       <div><div class="lbl">プリントの種類</div>
-        <div class="seg" id="modeSeg" style="--n:3"><button data-m="ls">セット<small>1回分・自習</small></button><button data-m="why">なるほど<small>しくみ</small></button><button data-m="learn">わかる<small>解き方</small></button><button data-m="prac">とく<small>練習問題</small></button><button data-m="test">テスト<small>定期テスト</small></button><button data-m="sum">まとめ<small>総復習</small></button><button data-m="ny">入試<small>大問</small></button><button data-m="bk">分解<small>入試を分解</small></button></div></div>
+        <div class="seg" id="modeSeg" style="--n:3"><button data-m="ls">セット<small>1回分・自習</small></button><button data-m="why">なるほど<small>しくみ</small></button><button data-m="learn">わかる<small>解き方</small></button><button data-m="prac">とく<small>練習問題</small></button><button data-m="test">テスト<small>定期テスト</small></button><button data-m="sum">まとめ<small>総復習</small></button><button data-m="ny">入試<small>大問</small></button><button data-m="bk">分解<small>入試を分解</small></button><button data-m="kk">計算<small>級別ドリル</small></button></div></div>
       <div class="lbl" id="cntlbl" style="margin:0">右の数字 = 問題数</div>
     </div>
     <div class="tree" id="tree"></div>
@@ -815,8 +823,14 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   const S = {
     /** svg全体: w,h はユーザ座標。width属性はmm指定可（既定: w*0.26mm） */
     svg(w, h, inner, opt = {}) {
-      const vb = opt.vb || `0 0 ${w} ${h}`;
-      const wmm = opt.wmm || r2(w * 0.26);
+      let vb = opt.vb || `0 0 ${w} ${h}`;
+      let wmm = opt.wmm || r2(w * 0.26);
+      /* 図のふちからはみ出す文字（頂点の名前・長さ・目もりの数）があれば、図の大きさはそのままで、わくだけ広げる */
+      if (!opt.vb && !/transform=/.test(inner)) { let L = 0, T = 0, Rr = w, B = h; const re = /<text x="([-\d.]+)" y="([-\d.]+)" text-anchor="(\w+)"[^>]*?font-size="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g; let m;
+        while ((m = re.exec(inner))) { const x = +m[1], y = +m[2], fs = +m[4], raw = m[5].replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/g, 'x'); const tw = [...raw].reduce((n, ch) => n + (/[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? fs : fs * 0.58), 0); const l = m[3] === 'start' ? x : m[3] === 'end' ? x - tw : x - tw / 2; L = Math.min(L, l - 2); Rr = Math.max(Rr, l + tw + 2); T = Math.min(T, y - fs * 0.6 - 1); B = Math.max(B, y + fs * 0.6 + 1); }
+        if (L < 0 || T < 0 || Rr > w || B > h) { const nw = Rr - L, nh = B - T; wmm = r2(wmm * nw / w); vb = `${r2(L)} ${r2(T)} ${r2(nw)} ${r2(nh)}`; } }
+      /* 図が小さすぎて文字が読めない（印刷で 2.4mm 未満）ときは、図を大きくする（1.6倍まで） */
+      { const fss = [...inner.matchAll(/<text[^>]*font-size="([\d.]+)"/g)].map(m => +m[1]); if (fss.length && !opt.keepSize) { const vw = +String(vb).split(/\s+/)[2] || w; const mm = Math.min(...fss) * wmm / vw; if (mm < 2.4) wmm = r2(wmm * Math.min(1.6, 2.4 / mm)); } }
       return `<svg class="fig" xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" style="width:${wmm}mm;max-width:100%" font-family="'Noto Sans JP','Hiragino Sans',sans-serif" font-size="${opt.fs || 14}">${inner}</svg>`;
     },
     line: (x1, y1, x2, y2, o = {}) => `<line x1="${r2(x1)}" y1="${r2(y1)}" x2="${r2(x2)}" y2="${r2(y2)}" stroke="${o.c || '#222'}" stroke-width="${o.w || 1.6}"${o.dash ? ` stroke-dasharray="${o.dash === true ? '5 4' : o.dash}"` : ''} stroke-linecap="round"/>`,
@@ -869,7 +883,10 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 
     /** 座標平面 {xmin,xmax,ymin,ymax,u(=1目もりのpx 22),grid(true),fns:[{f,from,to,c,dash}],segs:[[x1,y1,x2,y2,opt]],points:[{x,y,label,pos}],labels(true),O(true), every(=1)} */
     coord(o) {
-      const u = o.u || 22, xmin = o.xmin, xmax = o.xmax, ymin = o.ymin, ymax = o.ymax; const padL = 14, padR = 22, padT = 18, padB = 14;
+      const xmin = o.xmin, xmax = o.xmax, ymin = o.ymin, ymax = o.ymax; const padL = 14, padR = 22, padT = 18, padB = 14;
+      /* 目もりの数字があるグラフは、印刷で 1目もり 4.5mm 以上・数字 2.6mm（約7.5pt）になるように大きさをそろえる（小さすぎて点が打てない・数字がつまる、を防ぐ） */
+      let u = o.u || 22, WMM = o.wmm;
+      if (o.labels !== false) { const W0 = (xmax - xmin) * u + padL + padR; const mpu = Math.max(4.5, (o.wmm || W0 * 0.24) / W0 * u); u = mpu / 0.26; WMM = r2(((xmax - xmin) * u + padL + padR) * 0.26); }
       const W = (xmax - xmin) * u + padL + padR, H = (ymax - ymin) * u + padT + padB;
       const X = (x) => padL + (x - xmin) * u, Y = (y) => padT + (ymax - y) * u;
       let s = '';
@@ -877,16 +894,32 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       if (ymin <= 0 && ymax >= 0) s += S.line(X(xmin), Y(0), X(xmax) + 10, Y(0), { w: 1.4 }) + `<path d="M${X(xmax) + 10},${Y(0)} l-7,-4 l0,8 z" fill="#222"/>` + S.text(X(xmax) + 8, Y(0) + 12, 'x', { fs: 14 });
       if (xmin <= 0 && xmax >= 0) s += S.line(X(0), Y(ymin), X(0), Y(ymax) - 10, { w: 1.4 }) + `<path d="M${X(0)},${Y(ymax) - 10} l-4,7 l8,0 z" fill="#222"/>` + S.text(X(0) + 11, Y(ymax) - 8, 'y', { fs: 14 });
       if (o.O !== false && xmin <= 0 && ymin <= 0) s += S.text(X(0) - 8, Y(0) + 10, 'O', { fs: 12 });
-      if (o.labels !== false) { const ev = o.every || 1; for (let x = Math.ceil(xmin); x <= xmax; x++) if (x !== 0 && x % ev === 0) s += S.text(X(x), Y(0) + 11, x, { fs: 10 }); for (let y = Math.ceil(ymin); y <= ymax; y++) if (y !== 0 && y % ev === 0) s += S.text(X(0) - 9, Y(y), y, { fs: 10 }); }
+      /* 目もりの数字: 点（●）がちょうど数字の上にくるときは、その数字をかかない */
+      const tw = (t, fs) => String(t).length * fs * 0.6 + 1, ticks = [], boxes = [];
+      if (o.labels !== false) { const ev = o.every || 1; const nearO = (v) => v === -1 && u < 24 && o.O !== false && xmin <= 0 && ymin <= 0; /* 目もりがせまいとき、O のすぐ横の −1 は O と重なるのでかかない */ for (let x = Math.ceil(xmin); x <= xmax; x++) if (x !== 0 && x % ev === 0 && !nearO(x)) ticks.push([X(x), Y(0) + 11, x]); for (let y = Math.ceil(ymin); y <= ymax; y++) if (y !== 0 && y % ev === 0 && !nearO(y)) ticks.push([X(0) - 9, Y(y), y]); }
+      for (const [tx, ty, t] of ticks) { const w = tw(t, 10); if ((o.points || []).some(p => Math.abs(X(p.x) - tx) < w / 2 + 3 && Math.abs(Y(p.y) - ty) < 8)) continue; s += S.text(tx, ty, t, { fs: 10 }); boxes.push([tx - w / 2, ty - 5, tx + w / 2, ty + 5]); }
+      if (o.O !== false && xmin <= 0 && ymin <= 0) boxes.push([X(0) - 13, Y(0) + 4, X(0) - 3, Y(0) + 16]);
       const clip = `<clipPath id="cp${(o.id || Math.floor(Math.random() * 1e9))}"><rect x="${X(xmin)}" y="${Y(ymax)}" width="${(xmax - xmin) * u}" height="${(ymax - ymin) * u}"/></clipPath>`;
       const cid = /id="([^"]+)"/.exec(clip)[1];
       let g = '';
       for (const fn of (o.fns || [])) { const a = fn.from ?? xmin, b = fn.to ?? xmax; const n = 160; let d = ''; for (let k = 0; k <= n; k++) { const x = a + (b - a) * k / n; const y = fn.f(x); if (!isFinite(y) || Math.abs(y) > 1e4) { continue; } d += (d && !(fn.breakAt !== undefined && Math.abs(x - fn.breakAt) < (b - a) / n) ? 'L' : 'M') + r2(X(x)) + ',' + r2(Y(y)); } g += S.path(d, { c: fn.c || '#1f4e8c', w: fn.w || 2, dash: fn.dash }); }
       for (const sg of (o.segs || [])) { const [x1, y1, x2, y2, op] = sg; g += S.line(X(x1), Y(y1), X(x2), Y(y2), Object.assign({ c: '#1f4e8c', w: 2 }, op || {})); }
       s += `<defs>${clip}</defs><g clip-path="url(#${cid})">${g}</g>`;
-      for (const p of (o.points || [])) { s += p.open ? `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="3.6" fill="#fff" stroke="#222" stroke-width="1.5"/>` : S.dot(X(p.x), Y(p.y), { r: 3.4 }); if (p.label) { const pos = p.pos || 'ne'; const dx = pos.includes('e') ? 6 : pos.includes('w') ? -6 : 0; const dy = pos.includes('n') ? -9 : pos.includes('s') ? 11 : 0; s += S.text(X(p.x) + dx, Y(p.y) + dy, p.label, { fs: 13, a: dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle' }); } }
+      /* 点の名前: 目もりの数字・軸・グラフの線・ほかの名前に重ならない向きをえらぶ（pos の指定があれば、重ならないかぎりそれを使う） */
+      const lineSegs = []; for (const fn of (o.fns || [])) { const a = fn.from ?? xmin, b = fn.to ?? xmax; let pr = null; for (let k = 0; k <= 80; k++) { const x = a + (b - a) * k / 80, y = fn.f(x); if (!isFinite(y) || y < ymin - 1 || y > ymax + 1) { pr = null; continue; } const c = [X(x), Y(y)]; if (pr) lineSegs.push([...pr, ...c]); pr = c; } }
+      for (const sg of (o.segs || [])) lineSegs.push([X(sg[0]), Y(sg[1]), X(sg[2]), Y(sg[3])]);
+      if (ymin <= 0 && ymax >= 0) lineSegs.push([X(xmin), Y(0), X(xmax) + 10, Y(0)]); if (xmin <= 0 && xmax >= 0) lineSegs.push([X(0), Y(ymin), X(0), Y(ymax) - 10]);
+      const segHit = (b) => lineSegs.reduce((n, [x1, y1, x2, y2]) => { for (let k = 0; k <= 8; k++) { const x = x1 + (x2 - x1) * k / 8, y = y1 + (y2 - y1) * k / 8; if (x > b[0] && x < b[2] && y > b[1] && y < b[3]) return n + 1; } return n; }, 0);
+      const ovl = (a, b) => Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+      const dots = (o.points || []).map(p => [X(p.x) - 4, Y(p.y) - 4, X(p.x) + 4, Y(p.y) + 4]);
+      for (const p of (o.points || [])) { s += p.open ? `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="3.6" fill="#fff" stroke="#222" stroke-width="1.5"/>` : S.dot(X(p.x), Y(p.y), { r: 3.4 }); }
+      for (const p of (o.points || [])) { if (!p.label) continue; const w = tw(p.label, 13) * 0.85, hh = 12; let best = null;
+        for (const pos of [p.pos || 'ne', 'ne', 'nw', 'se', 'sw', 'n', 's', 'e', 'w']) { const dx = pos.includes('e') ? 6 : pos.includes('w') ? -6 : 0; const dy = pos.includes('n') ? -9 : pos.includes('s') ? 11 : 0; const tx = X(p.x) + dx, ty = Y(p.y) + dy; const l = dx > 0 ? tx : dx < 0 ? tx - w : tx - w / 2; const b = [l, ty - hh / 2 - 1, l + w, ty + hh / 2 - 1];
+          let sc = boxes.reduce((n, q) => n + ovl(b, q), 0) + dots.reduce((n, q) => n + ovl(b, q), 0) + segHit(b) * 30 + (pos === (p.pos || 'ne') ? 0 : 6); if (b[0] < 0 || b[1] < 0 || b[2] > W || b[3] > H) sc += 400;
+          if (!best || sc < best.sc) best = { sc, tx, ty, a: dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle', b }; if (sc === 0) break; }
+        s += S.text(best.tx, best.ty, p.label, { fs: 13, a: best.a }); boxes.push(best.b); }
       if (o.extra) s += o.extra({ X, Y, u });
-      return S.svg(W, H, s, { wmm: o.wmm || r2(W * 0.24) });
+      return S.svg(W, H, s, { wmm: WMM || r2(W * 0.24) });
     },
 
     /** 増加量の表（解説用）: 必要な列だけの2行の表に、上下の矢印で x・y の増加量を示す。
@@ -916,7 +949,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 
     /** ヒストグラム {bins:[{from,to,f}], ymax, ystep, xlabel, ylabel, w, polygon:true/false} */
     hist(o) {
-      const bins = o.bins, W = o.w || 420, H = o.h || 220, padL = 40, padR = 16, padT = 16, padB = 38;
+      const bins = o.bins, W = o.w || 420, H0 = o.h || 220, padL = 40, padR = 16, padT = o.ylabel ? 30 : 16, padB = 38, H = H0 + padT - 16; /* たて軸の名前（人）を、いちばん上の目もりの数字と重ならないように上にあける */
       const x0 = bins[0].from, x1 = bins[bins.length - 1].to; const ymax = o.ymax || Math.max(...bins.map(b => b.f)); const ys = o.ystep || 1;
       const X = (v) => padL + (v - x0) / (x1 - x0) * (W - padL - padR), Y = (v) => H - padB - v / ymax * (H - padT - padB);
       let s = '';
@@ -926,7 +959,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       if (o.polygon) { const w = bins[0].to - bins[0].from; const pts = [[x0 - w / 2, 0], ...bins.map(b => [(b.from + b.to) / 2, b.f]), [x1 + w / 2, 0]].filter(p => p[0] >= x0 - 1e-9 - w && p[0] <= x1 + w); s += S.path('M' + pts.map(p => r2(Math.max(padL - 6, Math.min(W - padR + 6, X(p[0])))) + ',' + r2(Y(p[1]))).join('L'), { c: '#c0392b', w: 1.8 }); }
       s += S.line(padL, Y(0), W - padR, Y(0), { w: 1.3 }) + S.line(padL, padT - 4, padL, Y(0), { w: 1.3 });
       if (o.xlabel) s += S.text(W - padR, H - 8, o.xlabel, { a: 'end', fs: 11, raw: true });
-      if (o.ylabel) s += S.text(4, padT - 6, o.ylabel, { a: 'start', fs: 11, raw: true });
+      if (o.ylabel) s += S.text(4, padT - 19, o.ylabel, { a: 'start', fs: 11, raw: true });
       return S.svg(W, H, s, { wmm: o.wmm || 105 });
     },
   };
@@ -1145,7 +1178,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   function topicOfGen(g) { if (!g) return null; if (!TOPIC_OF.size) for (const t of U.topics) for (const x of t.gens) TOPIC_OF.set(x, t); return TOPIC_OF.get(g) || null; }
   function pbAttrs(p, opt) {
     const t = topicOfGen(p._gen); const id = p.__pid || (p.__pid = 'p' + (++PID)); // 授業セットの例題と解説は同じ問題なので同じ目印
-    return ` data-pid="${id}"${t ? ` data-gen="${t.id}/${p._gen.id}"` : ''}${p._w ? ` data-w="${p._w}"` : ''}${opt.hint ? ' data-hint="1"' : ''}${opt.pts ? ` data-pts="${opt.pts}"` : ''}${(opt.chk || opt.star || opt.rich) ? ` data-o="${opt.chk ? 'c' : ''}${opt.star ? 's' : ''}${opt.rich ? 'r' : ''}"` : ''}`; // data-o: 「別の問題」で作り直すとき、□チェック・★・くわしい解答をそのまま使う
+    return ` data-pid="${id}"${t ? ` data-gen="${t.id}/${p._gen.id}"` : p._gen && p._gen.kk ? ` data-gen="kk/${p._gen.id}"` : ''}${p._w ? ` data-w="${p._w}"` : ''}${opt.hint ? ' data-hint="1"' : ''}${opt.pts ? ` data-pts="${opt.pts}"` : ''}${(opt.chk || opt.star || opt.rich) ? ` data-o="${opt.chk ? 'c' : ''}${opt.star ? 's' : ''}${opt.rich ? 'r' : ''}"` : ''}`; // data-o: 「別の問題」で作り直すとき、□チェック・★・くわしい解答をそのまま使う
   }
   function probHTML(p, no, opt = {}) {
     const h = p.h === undefined ? 2 : p.h; // 作業スペース（行数、1行≈8mm）
@@ -1567,13 +1600,65 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     }
     return out;
   }
-  function compose(cfg) {
-    const mode = cfg.mode || 'prac'; PID = 0;
-    const sheets = mode === 'learn' ? composeLearn(cfg) : mode === 'why' ? composeWhy(cfg) : mode === 'sum' ? composeSum(cfg) : mode === 'ny' ? composeNyushi(cfg) : mode === 'bk' ? composeBunkai(cfg) : mode === 'ls' ? composeLesson(cfg) : mode === 'test' ? composeTest(cfg) : composePractice(cfg);
+  /* ---------- 計算の級（20級〜1級）・入試実戦トレーニング（units/mz_kyu.js） ---------- */
+  const KYU_GENS = new Map(); G.KYU_GENS = KYU_GENS;
+  function kyuGen(k, part, i, fn, ins) {
+    const id = `${k.id}_${part}${i}`; let g = KYU_GENS.get(id);
+    if (!g) { const kk = U.kyuOf ? U.kyuOf(fn) || k : k; g = { id, kk: true, name: `${kk.kyu}級：${kk.title}`, lv: part === 'a' ? 2 : 1, tag: 'calc', cols: kk.cols || 2, h: kk.h || 1, ins: ins || kk.ins, make: fn }; KYU_GENS.set(id, g); }
+    return g;
+  }
+  const KYU_SETS = 'ABCDEFGH';
+  function kyuLetters(n, maxLv) { const order = maxLv <= 1 ? 'ABCD' : maxLv >= 3 ? 'EFGHABCD' : KYU_SETS; return Array.from({ length: n }, (_, i) => order[i % order.length]); }
+  function kyuRecord() {
+    const rows = (U.kyu || []).filter(k => !k.train);
+    const cell = '<td></td>';
+    let h = head({ cls: 'kk', label: '計算' }, '学習記録表（計算の級）', '<span class="sub">できた日と点数を書こう</span>', { self: false, total: '' });
+    h += `<div class="ls-guide">1回10問。<b>9問以上できたら</b>次の回へ。A〜D は基本、E〜H は発展。全部できたら次の級へ進もう。</div>`;
+    h += `<table class="tb kkrec"><tr><th>級</th><th>内容</th>${[...KYU_SETS].map(c => `<th>${c}</th>`).join('')}</tr>${rows.map(k => `<tr><td>${k.kyu}級</td><td style="text-align:left">${k.title}</td>${cell.repeat(8)}</tr>`).join('')}</table>`;
+    const tr = (U.kyu || []).filter(k => k.train);
+    if (tr.length) h += `<table class="tb kkrec" style="margin-top:4mm"><tr><th>入試実戦トレーニング</th><th>日付</th><th>点数</th></tr>${tr.map(k => `<tr><td style="text-align:left">${k.title.replace('入試実戦トレーニング', '')}</td><td></td><td>　　/100</td></tr>`).join('')}</table>`;
+    return { cls: 'prac kyu', html: h, fixed: 'q' };
+  }
+  function composeKyu(cfg) {
+    const sheets = [];
+    for (const it of cfg.items) {
+      if (it.id === 'kk-rec') { sheets.push(kyuRecord()); continue; }
+      const k = (U.kyu || []).find(x => x.id === it.id); if (!k) continue;
+      if (k.train) {
+        for (let r = 0; r < it.n; r++) {
+          const R = makeRng(cfg.seed ^ hash(k.id + 'T' + r)); const seen = new Set();
+          let html = head({ cls: 'kk', label: '計算' }, k.title, `<span class="sub">20問・各5点</span>${it.n > 1 ? `<span class="sub">（${r + 1}回目）</span>` : ''}`, { score: 100 });
+          let bi = 0;
+          for (const pool of U.kyuPools(k)) {
+            const idx = R.shuffle(pool.fns.map((f, i) => i)).slice(0, Math.min(pool.n, pool.fns.length)).sort((a, b) => a - b);
+            while (idx.length < pool.n) idx.push(pool.fns.length ? R.int(0, pool.fns.length - 1) : 0);
+            const runs = idx.map(i => { const fn = pool.fns[i]; const kk = U.kyuOf(fn) || k; const g = kyuGen(kk, 't', `${k.id}_${i}_${(kk.basic || []).indexOf(fn) >= 0 ? 'b' : 'a'}`, fn, kk.ins); return { ins: kk.ins, cols: kk.id === 'kk6' ? 2 : 2, probs: [makeOne(g, R, seen)] }; });
+            for (const run of mergeRuns(runs)) html += groupHTML(run.ins, run.probs, run.cols, { bigNo: CIRC[bi++ % 20], chk: true, rich: true, forceNo: true, ptsEach: run.probs.map(() => 5) });
+          }
+          sheets.push({ cls: 'prac kyu', html });
+        }
+        continue;
+      }
+      kyuLetters(it.n, cfg.maxLv || 2).forEach((L, r) => {
+        const R = makeRng(cfg.seed ^ hash(k.id + L + r)); const seen = new Set(); const adv = 'EFGH'.includes(L);
+        const list = adv ? k.adv : k.basic;
+        const probs = list.map((fn, i) => makeOne(kyuGen(k, adv ? 'a' : 'b', i, fn), R, seen));
+        let html = head({ cls: 'kk', label: '計算' }, `${k.kyu}級 ${L}　${k.title}`, `<span class="sub">${k.area}・${adv ? '発展' : '基本'}</span>`, { total: 10 });
+        html += `<div class="ls-guide">10問。やさしい順に並んでいます。<b>9問以上できたら</b>次の回へ。まちがえた問題は、解答の途中の式を見てやり直そう。</div>`;
+        html += groupHTML(k.ins, probs, k.cols || 2, { chk: true, rich: true, forceNo: true });
+        sheets.push({ cls: 'prac kyu', html });
+      });
+    }
     return sheets;
   }
 
-  const API = { nyDaimon, bandSig, bandGens, compose, makeOne, wordBankHTML, lessonExplain, composeLesson, composeBunkai, resolveItem, composeNyushi, nyList, composeSum, composeWhy, composeLearn, composePractice, composeTest, probHTML, learnBlock, LV_NAME };
+  function compose(cfg) {
+    const mode = cfg.mode || 'prac'; PID = 0;
+    const sheets = mode === 'learn' ? composeLearn(cfg) : mode === 'why' ? composeWhy(cfg) : mode === 'sum' ? composeSum(cfg) : mode === 'ny' ? composeNyushi(cfg) : mode === 'bk' ? composeBunkai(cfg) : mode === 'ls' ? composeLesson(cfg) : mode === 'test' ? composeTest(cfg) : mode === 'kk' ? composeKyu(cfg) : composePractice(cfg);
+    return sheets;
+  }
+
+  const API = { composeKyu, nyDaimon, bandSig, bandGens, compose, makeOne, wordBankHTML, lessonExplain, composeLesson, composeBunkai, resolveItem, composeNyushi, nyList, composeSum, composeWhy, composeLearn, composePractice, composeTest, probHTML, learnBlock, LV_NAME };
   Object.assign(G, API);
   if (typeof module !== 'undefined') module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -31301,7 +31386,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
         make(R) { const a = R.int(2, 12); const h = { c: new F(a, 2), r: 3 }; const hf = L(new F(a, 2)); return { expl: EX(`頂点から底辺に垂線をひくと、底辺は<b>2等分</b>される：半分は ${LT(new F(a, 2))}cm`, `高さを $h$ cm とする。斜辺 ${a}cm の直角三角形で<b>三平方の定理</b>：$h^2=${a}^2-${hf}^2=${L(new F(3 * a * a, 4))}${a % 2 ? `={${3 * a * a}/4}` : ''}$`, (a % 2 === 0 ? `$h>0$ だから　$h=${sqStep(3 * a * a / 4)}$` : `$h>0$ だから　$h=√{{${3 * a * a}/4}}={√${3 * a * a}/2}$。$√${3 * a * a}=√{${a * a}*3}=${a}√3$ なので　$h=${rt(h)}$`), `面積は　${'$'}{1/2}*${a}*${rt(h)}=${rt(sqScale(h, new F(a, 2)))}${'$'}`, `よって、答えは 高さ $${rt(h)}$ cm、面積 $${rt(sqScale(h, new F(a, 2)))}$ cm²`), q: `1辺が ${a}cm の正三角形の高さと面積を求めなさい。`, a: `高さ $${rt(h)}$ cm、面積 $${rt(sqScale(h, new F(a, 2)))}$ cm²`, sol: `$h^2=${a}^2-(${L(new F(a, 2))})^2$`, hint: '頂点から垂線。底辺の半分と斜辺で三平方' }; } },
       { id: 'isos', name: '二等辺三角形の高さと面積', lv: 1, tag: 'fig', cols: 2, h: 2, ins: '次の問いに答えなさい。',
         make(R) { const b = R.int(2, 7) * 2, e = R.int(b / 2 + 1, b / 2 + 8); const h = sqv(e * e - b * b / 4); const area = sqScale(h, b / 2);
-          const sc = scene({ A: [b / 2, rtv(h)], B: [0, 0], C: [b, 0], H: [b / 2, 0] }, 140, 120, { pad: 22, padX: 30 }); sc.poly(['A', 'B', 'C']).seg('A', 'H', { dash: true, w: 1.1 }).labs(['A', 'B', 'C']).labAt('H', 0, 14).edge('A', 'B', `${e}cm`, 'C').edge('A', 'C', `${e}cm`, 'B').edge('B', 'C', `${b}cm`, 'A', { d: 24 });
+          const sc = scene({ A: [b / 2, rtv(h)], B: [0, 0], C: [b, 0], H: [b / 2, 0] }, 140, 120, { pad: 22, padX: 30 }); sc.poly(['A', 'B', 'C']).seg('A', 'H', { dash: true, w: 1.1 }).labs(['A', 'B', 'C']).labAt('H', 0, 14).edge('A', 'B', `${e}cm`, 'C').edge('A', 'C', `${e}cm`, 'B').edge('B', 'C', `${b}cm`, 'A', { d: 30 });
           return { expl: EX(`頂点 $A$ から底辺に垂線 $AH$ をひくと、$H$ は $BC$ の<b>中点</b>：$BH=${b / 2}$ cm`, `$△ABH$ で<b>三平方の定理</b>：$AH^2=${e}^2-${b / 2}^2=${e * e - b * b / 4}$`, `$AH>0$ だから　${rootEq(e * e - b * b / 4, 'AH')}`, `面積は　${'$'}{1/2}*${b}*${rt(h)}=${rt(area)}${'$'}`, `よって、答えは $${rt(area)}$ cm²`), q: `等しい2辺が ${e}cm、底辺が ${b}cm の二等辺三角形の面積を求めなさい。`, fig: sc.svg(32), a: `$${rt(area)}$ cm²`, sol: `高さ $AH=√{${e * e}-${b * b / 4}}=${rt(h)}$`, hint: 'まず高さ。底辺の半分を使う' }; } },
       { id: 'chord', name: '弦の長さ・中心からの距離', lv: 1, tag: 'fig', cols: 2, h: 2, ins: '次の問いに答えなさい。',
         make(R) { const r = R.int(3, 12); if (R.chance(0.5)) { const d = R.int(1, r - 1); const half = sqv(r * r - d * d); return { expl: EX('中心 $O$ から弦 $AB$ に垂線 $OH$ をひくと、$H$ は $AB$ の<b>中点</b>', `$△OAH$ は直角三角形（斜辺は半径 $OA=${r}$）：$AH^2=${r}^2-${d}^2=${r * r - d * d}$`, `${rootEq(r * r - d * d, 'AH')}`, `弦の長さは $AH$ の2倍：$AB=2AH=${rt(sqScale(half, 2))}$`, `よって、答えは $${rt(sqScale(half, 2))}$ cm`), q: `半径 ${r}cm の円 $O$ で、中心 $O$ からの距離が ${d}cm である弦 $AB$ の長さを求めなさい。`, a: `$${rt(sqScale(half, 2))}$ cm`, sol: `$AH^2=${r}^2-${d}^2=${r * r - d * d}$、$AB=2AH$`, hint: '中心から弦に垂線。AB は AH の2倍' }; }
@@ -31704,7 +31789,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     { id: 'bis3', name: '角の二等分線と平行線（大問）', lv: 3, tag: 'fig', cols: 1, h: 4, ins: '次の問いに答えなさい。',
       make(R) { return R.retry(() => { const e = bisNums(R); const { AB, AC, BC } = e; const DE = new F(AB * AC, AB + AC); const BD = new F(BC * AB, AB + AC); if (DE.d > 10 || BD.d > 10) return null;
         const T = triPts(BC, AC, AB); const D = [BD.valueOf(), 0];         const Ep = lerp(T.A, T.C, DE.valueOf() / AC); // AE = DE
-        const sc = scene({ A: T.A, B: T.B, C: T.C, D, E: Ep }, 210, 140, { pad: 24, padX: 30 }); sc.poly(['A', 'B', 'C']).seg('A', 'D').seg('D', 'E').labs(['A', 'B', 'C']).labAt('D', 0, 15).lab('E', 'B').ang('A', 'B', 'D', { r: 18, label: '•', lr: 12, fs: 13 }).ang('A', 'D', 'C', { r: 18, label: '•', lr: 12, fs: 13 }).edge('A', 'B', `${AB}cm`, 'C').edge('A', 'C', `${AC}cm`, 'B', { d: 14 }).dim('B', 'C', `${BC}cm`, 'A', { off: 22 });
+        const sc = scene({ A: T.A, B: T.B, C: T.C, D, E: Ep }, 210, 140, { pad: 24, padX: 30 }); sc.poly(['A', 'B', 'C']).seg('A', 'D').seg('D', 'E').labs(['A', 'B', 'C']).labAt('D', 0, 15).lab('E', 'B').ang('A', 'B', 'D', { r: 18, label: '•', lr: 12, fs: 13 }).ang('A', 'D', 'C', { r: 18, label: '•', lr: 12, fs: 13 }).edge('A', 'B', `${AB}cm`, 'C').edge('A', 'C', `${AC}cm`, 'B', { d: 14 }).dim('B', 'C', `${BC}cm`, 'A', { off: 30 });
         assert(near(Math.abs((Ep[1] - D[1]) * (T.A[0] - T.B[0]) - (Ep[0] - D[0]) * (T.A[1] - T.B[1])), 0, 1e-6), 'DE∥AB');
         return { q: `$△ABC$ で、$∠A$ の二等分線と辺 $BC$ の交点を $D$ とし、$D$ を通り $AB$ に平行な直線と辺 $AC$ の交点を $E$ とします。<br>① $BD$ の長さを求めなさい。　② $DE$ の長さを求めなさい。　③ $AE=DE$ となる理由を説明しなさい。`, fig: sc.svg(56),
           a: `① ${LT(BD)}cm　② ${LT(DE)}cm　③ 解答例参照`, sol: `① $BD:DC=AB:AC=${AB}:${AC}$　② $DE:AB=CD:CB=${AC}:${AB + AC}$<br>③ $DE∥AB$ より錯角で $∠ADE=∠BAD$。仮定より $∠BAD=∠DAE$ だから $∠ADE=∠DAE$、$△AED$ は二等辺三角形`, hint: '② △CDE∽△CBA　③ 平行線の錯角' }; }); } });
@@ -46445,6 +46530,683 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 
 </script>
 <script>
+/* 計算の級（20級〜1級）と入試実戦トレーニング
+   計算ドリルの「級」の並び（小学校の整数 → 小数 → 分数 → 正負の数 → 文字式 → 方程式 → … → 2次方程式）と、
+   1回10問を「やさしい → むずかしい」に並べる形だけを参考にした。問題の数はすべて乱数で毎回つくる（もとの問題は写さない）。
+   U.kyu: [{ id, kyu, title, area, ins, cols, h, basic:[10の関数], adv:[10の関数] }]
+   各関数 (R) → { q, a, sol }。q・a・sol は T 記法（$…$）。sol は「＝」でつないだ途中の式。 */
+(function () {
+  const { F, N, Poly, U, gcd, simpSqrt, assert } = window;
+  U.kyu = U.kyu || [];
+  const add = (o) => { U.kyu.push(Object.assign({ ins: '次の計算をしなさい。', cols: 2, h: 1 }, o)); };
+  const fr = (a, b = 1) => new F(a, b);
+
+  /* ===== 数の書き方 ===== */
+  function decStr(v) { v = F.of(v); let k = 0, n = v.n, d = v.d; while (k < 8 && (n * 10 ** k) % d !== 0) k++; const s = n < 0 ? '-' : ''; const t = Math.round(Math.abs(n) * 10 ** k / d); if (!k) return s + t; const str = String(t).padStart(k + 1, '0'); return s + str.slice(0, -k) + '.' + str.slice(-k); }
+  const is25 = (d) => { while (d % 2 === 0) d /= 2; while (d % 5 === 0) d /= 5; return d === 1; };
+  function fmt(v, sty) {
+    v = F.of(v);
+    if (v.d === 1) return String(v.n);
+    if (sty === 'd' && is25(v.d)) return decStr(v);
+    if (sty === 'm' && Math.abs(v.n) > v.d) { const s = v.n < 0 ? '-' : ''; const w = Math.floor(Math.abs(v.n) / v.d), r = Math.abs(v.n) % v.d; return `${s}${w}{${r}/${v.d}}`; }
+    return F.fmt(v);
+  }
+  /* ===== 数の式（木）: 表示・計算・途中の式 ===== */
+  const nm = (v, sty = 'i', sg = false) => ({ k: 'n', v: F.of(v), sty, sg });
+  const bi = (op, l, r, par) => ({ k: 'b', op, l, r, par });
+  const pw = (b, e) => ({ k: 'p', b, e });
+  const ng = (x) => ({ k: 'g', x });
+  const P = { '+': 1, '-': 1, '*': 2, '/': 2 };
+  function rd(t, first = true) {
+    if (t.k === 'n') { let s = fmt(t.v, t.sty); if (t.sg) return { s: `(${t.v.n >= 0 ? '+' : ''}${s})`, p: 9 }; if (t.v.n < 0) return first ? { s, p: 1.5 } : { s: `(${s})`, p: 9 }; return { s, p: 9 }; }
+    if (t.k === 'p') { const B = rd(t.b, true); const plain = t.b.k === 'n' && !t.b.sg && t.b.v.n >= 0 && t.b.v.d === 1; return { s: `${plain ? B.s : `(${B.s})`}^${t.e}`, p: 8 }; }
+    if (t.k === 'g') { const X = rd(t.x, false); const s = '-' + (X.p < 3 ? `(${X.s})` : X.s); return first ? { s, p: 1.5 } : { s: `(${s})`, p: 9 }; }
+    const p = P[t.op]; const L = rd(t.l, first); const Rr = rd(t.r, false);
+    const ls = (L.p < p || t.l.par) ? `(${rd(t.l, true).s})` : L.s;
+    const rs = (Rr.p < p || (Rr.p === p && (t.op === '-' || t.op === '/')) || t.r.par) ? `(${rd(t.r, true).s})` : Rr.s;
+    return { s: ls + (t.op === '/' ? '÷' : t.op) + rs, p };
+  }
+  const show = (t) => rd(t, true).s;
+  function ev(t) {
+    if (t.k === 'n') return t.v;
+    if (t.k === 'p') return ev(t.b).pow(t.e);
+    if (t.k === 'g') return ev(t.x).neg();
+    const a = ev(t.l), b = ev(t.r);
+    if (t.op === '+') return a.add(b); if (t.op === '-') return a.sub(b); if (t.op === '*') return a.mul(b);
+    if (b.n === 0) throw new Error('0でわる'); return a.div(b);
+  }
+  const leaf = (t) => t.k === 'n';
+  const has = (t, f) => !leaf(t) && (f(t) || (t.k === 'b' ? has(t.l, f) || has(t.r, f) : has(t.k === 'p' ? t.b : t.x, f)));
+  const isPow = (t) => t.k === 'p' || t.k === 'g';
+  const isMD = (t) => t.k === 'b' && (t.op === '*' || t.op === '/');
+  function step(t, sty) {
+    const L = (v) => nm(v, sty(v));
+    if (leaf(t)) return null;
+    if (t.k === 'p') return leaf(t.b) ? L(ev(t)) : pw(step(t.b, sty), t.e);
+    if (t.k === 'g') return leaf(t.x) ? L(ev(t)) : ng(step(t.x, sty));
+    const mk = (l, r) => Object.assign({}, t, { l, r });
+    for (const f of [isPow, isMD]) { if (f === isMD && (t.op === '*' || t.op === '/')) break; if (has(t.l, f)) return mk(step(t.l, sty), t.r); if (has(t.r, f)) return mk(t.l, step(t.r, sty)); }
+    if (!leaf(t.l)) return mk(step(t.l, sty), t.r);
+    if (!leaf(t.r)) return mk(t.l, step(t.r, sty));
+    return L(ev(t));
+  }
+  /** 数の式の問題: 木 t から q・a・sol をつくる。o.dec: 答えを小数で。o.need(v): 答えの条件 */
+  function arith(t, o = {}) {
+    const v = ev(t); if (o.need && !o.need(v)) return null;
+    if (o.intOnly && v.d !== 1) return null;
+    const sty = (x) => (x.d === 1 ? 'i' : o.dec && is25(x.d) ? 'd' : 'f');
+    const chain = []; let cur = t; for (let i = 0; i < 12; i++) { const nx = step(cur, sty); if (!nx) break; cur = nx; chain.push(show(cur)); }
+    const a = fmt(v, sty(v));
+    return { q: `$${show(t)}$`, a: `$${a}$`, sol: chain.length > 1 ? `$=${chain.join('=')}$` : '' };
+  }
+  const Q = (R, fn, o) => R.retry(() => { try { const t = fn(); return t ? arith(t, typeof o === 'function' ? o() : o) : null; } catch (e) { return null; } });
+
+  /* 小数・分数の乱数 */
+  const dec = (R, a, b, k) => fr(R.int(a * 10 ** k, b * 10 ** k), 10 ** k); // a〜b の小数（k けた）
+  const dn = (R, a, b, k) => { let v; do { v = dec(R, a, b, k); } while (v.d === 1 || v.n === 0); return nm(v, 'd'); };
+  const frac = (R, dmax = 9, max = 1) => R.retry(() => { const d = R.int(2, dmax); const n = R.int(1, d * max - 1); return gcd(n, d) === 1 && n % d !== 0 ? fr(n, d) : null; });
+  const fn_ = (R, dmax, max, sty = 'f') => nm(frac(R, dmax, max), sty);
+  const I = (R, a, b) => nm(R.int(a, b));
+  const S = (R, a, b) => nm(R.nz(a, b)); // 符号つきの整数（負はかっこ）
+  const SS = (R, a, b) => nm(R.nz(a, b), 'i', true); // (+3)(−5) の形
+
+  /* ===== 20級 整数の計算 ===== */
+  const exactDiv = (R, qa, qb, da, db) => { const q = R.int(qa, qb), d = R.int(da, db); return bi('/', nm(q * d), nm(d)); };
+  add({ id: 'kk20', kyu: 20, title: '整数の計算', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('+', I(R, 11, 79), I(R, 11, 79))),
+    (R) => Q(R, () => bi('+', I(R, 101, 899), I(R, 11, 99))),
+    (R) => Q(R, () => { const a = R.int(30, 99), b = R.int(11, a - 5); return bi('-', nm(a), nm(b)); }),
+    (R) => Q(R, () => { const a = R.int(300, 999), b = R.int(101, a - 50); return bi('-', nm(a), nm(b)); }),
+    (R) => Q(R, () => bi('*', I(R, 12, 99), I(R, 3, 9))),
+    (R) => Q(R, () => bi('*', I(R, 12, 99), I(R, 12, 99))),
+    (R) => Q(R, () => exactDiv(R, 12, 99, 3, 9)),
+    (R) => Q(R, () => exactDiv(R, 12, 60, 12, 39)),
+    (R) => Q(R, () => bi('+', I(R, 2, 20), bi('*', I(R, 2, 9), I(R, 2, 9)))),
+    (R) => Q(R, () => { const c = R.int(2, 9), q = R.int(2, 9); const a = R.int(q + 1, 40); return bi('-', nm(a), bi('/', nm(q * c), nm(c))); }),
+  ], adv: [
+    (R) => Q(R, () => bi('+', I(R, 1001, 8999), I(R, 101, 999))),
+    (R) => Q(R, () => { const a = R.int(3000, 9999), b = R.int(1001, a - 100); return bi('-', nm(a), nm(b)); }),
+    (R) => Q(R, () => bi('*', I(R, 101, 999), I(R, 12, 99))),
+    (R) => Q(R, () => exactDiv(R, 21, 99, 102, 409)),
+    (R) => Q(R, () => bi('-', bi('+', I(R, 10, 99), bi('*', I(R, 2, 12), I(R, 2, 12))), I(R, 2, 9)), { need: v => v.n > 0 }),
+    (R) => Q(R, () => { const c = R.int(2, 9); const s = R.int(2, 12) * c; const a = R.int(1, s - 1); return bi('/', bi('+', nm(a), nm(s - a)), nm(c)); }),
+    (R) => Q(R, () => bi('-', bi('*', bi('-', I(R, 20, 60), I(R, 2, 15)), I(R, 2, 6)), I(R, 5, 40)), { need: v => v.n > 0 }),
+    (R) => Q(R, () => { const k = R.int(2, 6), m = R.int(2, 5); const inner = R.int(2, 9); const a = inner + k * m; return bi('/', nm(R.int(2, 12) * inner), bi('-', nm(a), bi('*', nm(k), nm(m)))); }, { intOnly: true }),
+    (R) => Q(R, () => bi('-', bi('+', bi('*', I(R, 10, 30), I(R, 2, 6)), exactDiv(R, 2, 12, 2, 9)), bi('*', I(R, 2, 9), I(R, 2, 6))), { need: v => v.n > 0 }),
+    (R) => Q(R, () => { const c = R.int(2, 6); const inner = R.int(2, 8) * c; const b = R.int(2, 9); return bi('+', bi('*', I(R, 3, 12), I(R, 2, 9)), bi('/', bi('-', nm(inner + b * 2), bi('*', nm(b), nm(2))), nm(c))); }),
+  ] });
+
+  /* ===== 19級 小数のたし算・ひき算 ===== */
+  const D = { dec: true };
+  add({ id: 'kk19', kyu: 19, title: '小数のたし算・ひき算', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('+', dn(R, 0.1, 0.9, 1), dn(R, 0.1, 0.9, 1)), D),
+    (R) => Q(R, () => bi('+', dn(R, 1, 9, 1), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('+', I(R, 1, 9), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => { const a = dec(R, 1, 9, 1), b = dec(R, 0.1, 9, 1); return b.lt(a) && b.d !== 1 && a.d !== 1 ? bi('-', nm(a, 'd'), nm(b, 'd')) : null; }, D),
+    (R) => Q(R, () => { const a = R.int(2, 12), b = dec(R, 0.1, a - 0.1, 1); return b.d !== 1 ? bi('-', nm(a), nm(b, 'd')) : null; }, D),
+    (R) => Q(R, () => bi('+', dn(R, 0.01, 9, 2), dn(R, 0.01, 9, 2)), D),
+    (R) => Q(R, () => bi('+', dn(R, 1, 50, 2), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => { const a = dec(R, 1, 20, 2), b = dec(R, 0.01, 9, 2); return b.lt(a) && a.d !== 1 && b.d !== 1 ? bi('-', nm(a, 'd'), nm(b, 'd')) : null; }, D),
+    (R) => Q(R, () => { const a = dec(R, 1, 20, 1), b = dec(R, 0.01, 9, 2); return b.lt(a) && a.d !== 1 && b.d !== 1 ? bi('-', nm(a, 'd'), nm(b, 'd')) : null; }, D),
+    (R) => Q(R, () => { const a = R.int(2, 20), b = dec(R, 0.01, a - 0.01, 3); return b.d !== 1 ? bi('-', nm(a), nm(b, 'd')) : null; }, D),
+  ], adv: [
+    (R) => Q(R, () => bi('+', bi('+', dn(R, 0.1, 5, 1), dn(R, 0.1, 5, 1)), dn(R, 0.1, 5, 1)), D),
+    (R) => Q(R, () => bi('-', bi('+', dn(R, 1, 9, 1), dn(R, 0.1, 9, 1)), dn(R, 0.1, 5, 1)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('-', bi('-', I(R, 6, 15), dn(R, 0.1, 4, 1)), dn(R, 0.1, 4, 1)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('+', bi('-', dn(R, 10, 30, 2), dn(R, 1, 9, 1)), dn(R, 0.1, 9, 2)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('-', bi('+', dn(R, 1, 9, 3), dn(R, 1, 9, 2)), dn(R, 0.1, 5, 2)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('-', I(R, 3, 12), bi('+', dn(R, 0.1, 3, 2), dn(R, 0.1, 3, 1))), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('+', bi('-', dn(R, 20, 60, 1), dn(R, 10, 19, 2)), dn(R, 1, 9, 2)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('-', dn(R, 5, 20, 1), bi('-', dn(R, 3, 9, 2), dn(R, 0.1, 2, 2))), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('-', bi('-', dn(R, 10, 40, 1), dn(R, 1, 9, 3)), dn(R, 0.01, 2, 2)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('+', bi('-', I(R, 2, 9), dn(R, 0.001, 1.9, 3)), dn(R, 0.01, 3, 2)), { dec: true, need: v => v.n > 0 }),
+  ] });
+
+  /* ===== 18級 小数のかけ算・わり算（わりきれる） ===== */
+  const dvd = (R, qv, dv) => bi('/', nm(qv.mul(dv), 'd'), nm(dv, 'd')); // 商が qv になるわり算
+  add({ id: 'kk18', kyu: 18, title: '小数のかけ算・わり算', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('*', dn(R, 0.1, 9.9, 1), I(R, 2, 9)), D),
+    (R) => Q(R, () => bi('*', dn(R, 1, 30, 1), I(R, 11, 40)), D),
+    (R) => Q(R, () => bi('*', dn(R, 0.01, 3, 2), I(R, 2, 30)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.1, 9.9, 1), fr(R.int(2, 9))), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.1, 9.9, 1), fr(R.int(11, 30))), D),
+    (R) => Q(R, () => { const d = R.pick([2, 4, 5, 8]); const n = R.int(1, 30); return n % d ? bi('/', nm(n), nm(d)) : null; }, D),
+    (R) => Q(R, () => bi('*', dn(R, 0.1, 9, 1), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('*', dn(R, 1, 20, 2), dn(R, 0.1, 5, 1)), D),
+    (R) => Q(R, () => dvd(R, fr(R.int(2, 40)), dec(R, 0.1, 5, 1)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.2, 20, 1), dec(R, 0.1, 5, 1)), D),
+  ], adv: [
+    (R) => Q(R, () => bi('*', dn(R, 0.01, 9, 2), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('*', dn(R, 0.1, 9, 2), dn(R, 1, 9, 2)), D),
+    (R) => Q(R, () => bi('*', dn(R, 0.01, 0.99, 2), dn(R, 0.01, 0.99, 2)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.1, 9, 1), dec(R, 0.1, 3, 2)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.01, 3, 2), dec(R, 0.1, 3, 1)), D),
+    (R) => Q(R, () => dvd(R, fr(R.int(2, 30)), dec(R, 0.01, 0.99, 2)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 1, 30, 1), dec(R, 1, 9, 2)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 0.1, 9, 2), dec(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => dvd(R, R.pick([fr(R.int(2, 9), 4), fr(R.int(2, 30), 8), fr(R.int(2, 30), 5)]), dec(R, 0.2, 9, 1)), D),
+    (R) => Q(R, () => dvd(R, dec(R, 1, 99, 1), dec(R, 0.1, 9, 1)), D),
+  ] });
+
+  /* ===== 17級 小数の四則混合 ===== */
+  add({ id: 'kk17', kyu: 17, title: '小数の四則混合', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('+', dn(R, 0.1, 9, 1), bi('*', dn(R, 0.1, 3, 1), I(R, 2, 6))), D),
+    (R) => Q(R, () => bi('-', dn(R, 3, 20, 1), bi('*', dn(R, 0.1, 2, 1), I(R, 2, 5))), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('+', bi('*', dn(R, 0.1, 5, 1), I(R, 2, 9)), dn(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('-', bi('/', dvd(R, dec(R, 1, 9, 1), fr(R.int(2, 6))).l, nm(R.int(2, 6))), dn(R, 0.1, 0.9, 1)), { dec: true, need: v => v.n > 0 && is25(v.d) }),
+    (R) => Q(R, () => { const q = dec(R, 0.1, 5, 1), d = fr(R.int(2, 9)); return bi('+', bi('/', nm(q.mul(d), 'd'), nm(d)), dn(R, 0.1, 5, 1)); }, D),
+    (R) => Q(R, () => bi('*', bi('-', I(R, 3, 9), dn(R, 0.1, 2, 1)), I(R, 2, 6)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => { const d = dec(R, 0.1, 2, 1), q = R.int(2, 20); const s = d.mul(fr(q)); const a = dec(R, 0.1, s.valueOf() - 0.1, 1); return a.n > 0 && a.lt(s) ? bi('/', bi('-', nm(s, 'd'), nm(a, 'd'), true), nm(d, 'd')) : null; }, { dec: true, need: v => is25(v.d) }),
+    (R) => Q(R, () => { const d = dec(R, 0.1, 0.9, 1), q = R.int(2, 9); const s = d.mul(fr(q)); return bi('/', nm(s.sub(fr(1, 10)), 'd'), nm(d, 'd')).l.v.n > 0 ? dvd(R, fr(q), d) : null; }, D),
+    (R) => Q(R, () => bi('+', bi('*', dn(R, 1, 9, 1), I(R, 2, 5)), bi('*', dn(R, 0.1, 3, 1), I(R, 2, 5))), D),
+    (R) => Q(R, () => bi('-', bi('*', I(R, 10, 20), dn(R, 0.1, 2, 1)), bi('*', dn(R, 0.1, 2, 1), I(R, 2, 5))), { dec: true, need: v => v.n > 0 }),
+  ], adv: [
+    (R) => Q(R, () => bi('-', bi('*', dn(R, 0.1, 5, 1), dn(R, 1, 4, 1)), dn(R, 0.1, 1, 2)), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => { const d = dec(R, 0.1, 0.9, 1); return bi('+', dvd(R, dec(R, 0.1, 9, 1), d), dn(R, 0.1, 9, 2)); }, D),
+    (R) => Q(R, () => bi('*', bi('+', dn(R, 0.1, 5, 1), dn(R, 0.1, 5, 2)), dn(R, 0.1, 3, 1)), D),
+    (R) => Q(R, () => { const d = dec(R, 0.1, 2, 1), q = dec(R, 0.1, 9, 1); const s = q.mul(d); const a = dec(R, 0.1, 5, 1); return bi('/', bi('+', nm(s.sub(a), 'd'), nm(a, 'd'), true), nm(d, 'd')).l.l.v.n > 0 ? bi('/', bi('+', nm(s.sub(a), 'd'), nm(a, 'd')), nm(d, 'd')) : null; }, D),
+    (R) => Q(R, () => bi('-', bi('*', dn(R, 1, 9, 1), dn(R, 1, 3, 1)), bi('*', dn(R, 0.1, 2, 1), dn(R, 0.1, 3, 1))), { dec: true, need: v => v.n > 0 }),
+    (R) => Q(R, () => bi('+', bi('/', nm(fr(R.int(2, 9))), dn(R, 0.2, 0.5, 1)), bi('*', dn(R, 0.1, 2, 2), I(R, 2, 9))), { dec: true, need: v => is25(v.d) }),
+    (R) => Q(R, () => { const d = dec(R, 0.1, 0.9, 1); const q = R.int(2, 30); const s = d.mul(fr(q)); const b = dec(R, 0.1, 9, 1); return bi('/', bi('-', nm(s.add(b), 'd'), nm(b, 'd')), nm(d, 'd')); }, D),
+    (R) => Q(R, () => bi('-', bi('/', nm(fr(R.int(1, 30) * 4, 10), 'd'), dn(R, 0.2, 0.8, 1)), dn(R, 0.1, 1, 1)), { dec: true, need: v => v.n > 0 && is25(v.d) }),
+    (R) => Q(R, () => bi('+', bi('-', bi('*', dn(R, 1, 9, 1), I(R, 2, 5)), bi('/', dn(R, 1, 4, 1), I(R, 2, 4))), dn(R, 0.1, 1, 2)), { dec: true, need: v => v.n > 0 && is25(v.d) }),
+    (R) => Q(R, () => bi('-', bi('*', dn(R, 10, 30, 1), dn(R, 0.1, 0.9, 1)), bi('/', dn(R, 0.1, 3, 1), dn(R, 0.1, 0.5, 1))), { dec: true, need: v => v.n > 0 && is25(v.d) }),
+  ] });
+
+  /* ===== 16級 分数のたし算・ひき算 ===== */
+  const fsame = (R, op) => R.retry(() => { const d = R.int(3, 12); const a = R.int(1, d - 1), b = R.int(1, d - 1); if (gcd(a, d) !== 1 || gcd(b, d) !== 1) return null; if (op === '-' && a <= b) return null; return bi(op, nm(fr(a, d)), nm(fr(b, d))); });
+  const pos = { need: v => v.n > 0 };
+  add({ id: 'kk16', kyu: 16, title: '分数のたし算・ひき算', area: '小学校の復習', basic: [
+    (R) => Q(R, () => fsame(R, '+')),
+    (R) => Q(R, () => fsame(R, '-')),
+    (R) => Q(R, () => bi('+', fn_(R, 6), fn_(R, 6))),
+    (R) => Q(R, () => bi('-', fn_(R, 9), fn_(R, 9)), pos),
+    (R) => Q(R, () => bi('+', fn_(R, 12), fn_(R, 12))),
+    (R) => Q(R, () => bi('-', I(R, 1, 3), fn_(R, 9)), pos),
+    (R) => Q(R, () => bi('+', fn_(R, 6, 3, 'm'), fn_(R, 8))),
+    (R) => Q(R, () => bi('-', fn_(R, 8, 3, 'm'), fn_(R, 9)), pos),
+    (R) => Q(R, () => bi('-', fn_(R, 12, 2), fn_(R, 12)), pos),
+    (R) => Q(R, () => bi('+', fn_(R, 9, 2, 'm'), fn_(R, 9, 2, 'm'))),
+  ], adv: [
+    (R) => Q(R, () => bi('+', bi('+', fn_(R, 6), fn_(R, 6)), fn_(R, 6))),
+    (R) => Q(R, () => bi('-', bi('+', fn_(R, 8), fn_(R, 8)), fn_(R, 8)), pos),
+    (R) => Q(R, () => bi('-', bi('-', I(R, 2, 4), fn_(R, 9)), fn_(R, 9)), pos),
+    (R) => Q(R, () => bi('+', fn_(R, 9), dn(R, 0.1, 0.9, 1))),
+    (R) => Q(R, () => bi('-', dn(R, 1, 3, 1), fn_(R, 7)), pos),
+    (R) => Q(R, () => bi('-', bi('+', fn_(R, 6, 3, 'm'), fn_(R, 10)), fn_(R, 8, 2, 'm')), pos),
+    (R) => Q(R, () => bi('+', bi('-', fn_(R, 12, 2), fn_(R, 12)), fn_(R, 12)), pos),
+    (R) => Q(R, () => bi('-', fn_(R, 15, 2), fn_(R, 15)), pos),
+    (R) => Q(R, () => bi('-', bi('-', fn_(R, 10, 3), fn_(R, 10)), dn(R, 0.1, 0.9, 1)), pos),
+    (R) => Q(R, () => bi('+', bi('-', fn_(R, 12, 2), fn_(R, 12)), fn_(R, 12)), { need: v => v.n > 0 && v.d <= 60 }),
+  ] });
+
+  /* ===== 15級 分数のかけ算・わり算 ===== */
+  add({ id: 'kk15', kyu: 15, title: '分数のかけ算・わり算', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('*', fn_(R, 9), I(R, 2, 9))),
+    (R) => Q(R, () => bi('/', fn_(R, 9), I(R, 2, 9))),
+    (R) => Q(R, () => bi('*', I(R, 2, 12), fn_(R, 9))),
+    (R) => Q(R, () => bi('*', fn_(R, 9), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', fn_(R, 9), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', I(R, 2, 12), fn_(R, 9))),
+    (R) => Q(R, () => bi('*', fn_(R, 9, 2), fn_(R, 12))),
+    (R) => Q(R, () => bi('*', fn_(R, 6, 3, 'm'), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', fn_(R, 6, 3, 'm'), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', fn_(R, 12, 2), fn_(R, 12, 2))),
+  ], adv: [
+    (R) => Q(R, () => bi('*', bi('*', fn_(R, 9), fn_(R, 9)), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', bi('*', fn_(R, 9), fn_(R, 9)), fn_(R, 9))),
+    (R) => Q(R, () => bi('*', bi('/', fn_(R, 9), fn_(R, 9)), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', bi('/', fn_(R, 9, 2), fn_(R, 9)), fn_(R, 9))),
+    (R) => Q(R, () => bi('*', dn(R, 0.1, 2, 1), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', fn_(R, 9), dn(R, 0.1, 2, 1))),
+    (R) => Q(R, () => bi('*', bi('/', fn_(R, 6, 3, 'm'), fn_(R, 9)), fn_(R, 9, 2, 'm'))),
+    (R) => Q(R, () => bi('/', bi('*', I(R, 2, 9), fn_(R, 12)), fn_(R, 12))),
+    (R) => Q(R, () => bi('*', bi('/', fn_(R, 9), dn(R, 0.1, 0.9, 1)), I(R, 2, 9))),
+    (R) => Q(R, () => bi('/', bi('*', fn_(R, 8, 3, 'm'), I(R, 2, 6)), dn(R, 0.1, 3, 1))),
+  ] });
+
+  /* ===== 14級 分数の四則混合 ===== */
+  add({ id: 'kk14', kyu: 14, title: '分数の四則混合', area: '小学校の復習', basic: [
+    (R) => Q(R, () => bi('+', I(R, 1, 3), bi('*', fn_(R, 6), I(R, 2, 4)))),
+    (R) => Q(R, () => bi('-', I(R, 1, 3), bi('/', fn_(R, 6), I(R, 2, 4))), pos),
+    (R) => Q(R, () => bi('+', fn_(R, 6), bi('*', fn_(R, 6), fn_(R, 6)))),
+    (R) => Q(R, () => bi('-', fn_(R, 9, 2), bi('*', fn_(R, 6), fn_(R, 6))), pos),
+    (R) => Q(R, () => bi('+', bi('/', fn_(R, 6), fn_(R, 6)), fn_(R, 6))),
+    (R) => Q(R, () => bi('-', bi('*', fn_(R, 9), I(R, 2, 6)), fn_(R, 9)), pos),
+    (R) => Q(R, () => bi('*', bi('-', fn_(R, 9, 2), fn_(R, 9)), I(R, 2, 12)), pos),
+    (R) => Q(R, () => bi('/', bi('+', fn_(R, 6), fn_(R, 6)), fn_(R, 6))),
+    (R) => Q(R, () => bi('*', bi('+', fn_(R, 6), fn_(R, 6)), fn_(R, 6))),
+    (R) => Q(R, () => bi('/', bi('-', I(R, 1, 3), fn_(R, 6)), I(R, 2, 6)), pos),
+  ], adv: [
+    (R) => Q(R, () => bi('-', bi('+', fn_(R, 6), bi('*', fn_(R, 6), fn_(R, 6))), fn_(R, 6)), pos),
+    (R) => Q(R, () => bi('*', bi('-', fn_(R, 6, 2), fn_(R, 6)), bi('+', fn_(R, 6), fn_(R, 6))), pos),
+    (R) => Q(R, () => bi('/', bi('-', fn_(R, 9, 2), fn_(R, 9)), bi('+', fn_(R, 6), fn_(R, 6))), pos),
+    (R) => Q(R, () => bi('-', fn_(R, 6, 2), bi('*', bi('-', fn_(R, 6), fn_(R, 6)), I(R, 2, 6))), pos),
+    (R) => Q(R, () => bi('+', bi('*', fn_(R, 9), dn(R, 0.1, 2, 1)), fn_(R, 9))),
+    (R) => Q(R, () => bi('/', bi('-', dn(R, 0.5, 3, 1), fn_(R, 6)), fn_(R, 6)), pos),
+    (R) => Q(R, () => bi('-', bi('*', fn_(R, 6, 3, 'm'), fn_(R, 9)), bi('/', fn_(R, 6), I(R, 2, 4))), pos),
+    (R) => Q(R, () => bi('*', bi('+', fn_(R, 6), dn(R, 0.1, 0.9, 1)), fn_(R, 9))),
+    (R) => Q(R, () => bi('+', bi('/', fn_(R, 6), bi('-', fn_(R, 6, 2), fn_(R, 6))), fn_(R, 6)), pos),
+    (R) => Q(R, () => bi('-', bi('*', bi('+', fn_(R, 6), fn_(R, 6)), dn(R, 0.1, 2, 1)), bi('/', fn_(R, 9), I(R, 2, 4))), pos),
+  ] });
+
+  /* ===== 13級 正の数・負の数の加法・減法 ===== */
+  const SD = (R, a, b, k) => { let v; do { v = dec(R, a, b, k); } while (v.d === 1 || v.n === 0); return nm(R.chance(0.5) ? v.neg() : v, 'd'); };
+  const SF = (R, dm = 9) => nm(R.chance(0.5) ? frac(R, dm).neg() : frac(R, dm));
+  const SDs = (R, a, b, k) => Object.assign(SD(R, a, b, k), { sg: true });
+  const SFs = (R, dm) => Object.assign(SF(R, dm), { sg: true });
+  const chainT = (R, n, mk) => { let t = mk(); for (let i = 1; i < n; i++) t = bi(R.pick(['+', '-']), t, mk()); return t; };
+  add({ id: 'kk13', kyu: 13, title: '正の数・負の数の加法・減法', area: '中1', basic: [
+    (R) => Q(R, () => bi('+', SS(R, -12, 12), SS(R, -12, 12))),
+    (R) => Q(R, () => bi('+', SS(R, -20, -1), SS(R, -20, -1))),
+    (R) => Q(R, () => bi('-', SS(R, -12, 12), SS(R, 1, 15))),
+    (R) => Q(R, () => bi('-', SS(R, -12, 12), SS(R, -15, -1))),
+    (R) => Q(R, () => bi('-', SS(R, -20, 20), SS(R, -20, 20))),
+    (R) => Q(R, () => bi('+', bi('+', SS(R, -12, 12), SS(R, -12, 12)), SS(R, -12, 12))),
+    (R) => Q(R, () => bi('-', bi('+', SS(R, -12, 12), SS(R, -12, 12)), SS(R, -12, 12))),
+    (R) => Q(R, () => bi(R.pick(['+', '-']), S(R, -12, 12), I(R, 1, 15))),
+    (R) => Q(R, () => chainT(R, 3, () => I(R, 1, 15)).l ? bi('-', bi('+', nm(-R.int(1, 12)), I(R, 1, 12)), I(R, 1, 15)) : null),
+    (R) => Q(R, () => bi('+', bi('-', S(R, -15, 15), SS(R, -12, 12)), I(R, 1, 12))),
+  ], adv: [
+    (R) => Q(R, () => bi('+', SDs(R, 0.1, 9, 1), SDs(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('-', SDs(R, 0.1, 9, 2), SDs(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('+', SFs(R, 6), SFs(R, 6))),
+    (R) => Q(R, () => bi('-', SFs(R, 8), SFs(R, 8))),
+    (R) => Q(R, () => bi('-', bi('+', SD(R, 0.1, 9, 1), SD(R, 0.1, 9, 1)), SDs(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('+', bi('-', SF(R, 6), fn_(R, 6)), fn_(R, 6))),
+    (R) => Q(R, () => bi('-', bi('-', S(R, -12, 12), SS(R, -12, 12)), bi('+', I(R, 1, 9), S(R, -9, 9), true))),
+    (R) => Q(R, () => bi('+', bi('-', SD(R, 0.1, 5, 2), fn_(R, 4, 1, 'f')), SD(R, 0.1, 5, 1))),
+    (R) => Q(R, () => bi('-', bi('+', bi('-', S(R, -9, 9), I(R, 1, 9)), SS(R, -9, 9)), SS(R, -9, 9))),
+    (R) => Q(R, () => bi('+', bi('-', bi('+', SF(R, 6), SFs(R, 6)), SFs(R, 4)), fn_(R, 4))),
+  ] });
+
+  /* ===== 12級 正の数・負の数の乗法・除法・累乗 ===== */
+  const sdiv = (R, a, b, c, d) => { const q = R.nz(a, b), k = R.nz(c, d); return bi('/', nm(q * k, 'i', R.chance(0.3)), nm(k, 'i', R.chance(0.3))); };
+  add({ id: 'kk12', kyu: 12, title: '正の数・負の数の乗法・除法', area: '中1', basic: [
+    (R) => Q(R, () => bi('*', SS(R, -9, 9), SS(R, -9, 9))),
+    (R) => Q(R, () => bi('*', S(R, -12, 12), S(R, -9, -2))),
+    (R) => Q(R, () => sdiv(R, -9, 9, -9, 9)),
+    (R) => Q(R, () => sdiv(R, -12, 12, -12, -2)),
+    (R) => Q(R, () => pw(nm(-R.int(2, 9)), 2)),
+    (R) => Q(R, () => ng(pw(nm(R.int(2, 9)), 2))),
+    (R) => Q(R, () => pw(nm(-R.int(2, 5)), 3)),
+    (R) => Q(R, () => bi('*', bi('*', S(R, -6, 6), S(R, -6, 6)), S(R, -5, 5))),
+    (R) => Q(R, () => bi('*', S(R, -12, 12), SF(R, 6))),
+    (R) => Q(R, () => pw(SF(R, 5), 2)),
+  ], adv: [
+    (R) => Q(R, () => bi('/', bi('*', S(R, -12, 12), S(R, -6, 6)), S(R, -9, 9)), { intOnly: true }),
+    (R) => Q(R, () => bi('*', pw(nm(-R.int(2, 5)), 2), S(R, -6, 6))),
+    (R) => Q(R, () => bi('/', ng(pw(nm(R.int(2, 6)), 2)), S(R, -9, 9)), { intOnly: true }),
+    (R) => Q(R, () => bi('*', SD(R, 0.1, 2, 1), SD(R, 0.1, 9, 1)), D),
+    (R) => Q(R, () => bi('/', SF(R, 9), SF(R, 9))),
+    (R) => Q(R, () => bi('*', bi('/', SF(R, 6), SF(R, 6)), S(R, -9, 9))),
+    (R) => Q(R, () => bi('*', pw(SF(R, 4), 2), S(R, -12, 12))),
+    (R) => Q(R, () => bi('/', pw(nm(-R.int(2, 4)), 3), pw(nm(-R.int(2, 4)), 2))),
+    (R) => Q(R, () => bi('*', bi('*', ng(pw(nm(R.int(2, 4)), 2)), S(R, -3, 3)), pw(nm(-1), R.int(2, 5)))),
+    (R) => Q(R, () => bi('/', bi('*', SF(R, 6), pw(nm(-R.int(2, 4)), 2)), SF(R, 6))),
+  ] });
+
+  /* ===== 11級 正の数・負の数の四則混合 ===== */
+  add({ id: 'kk11', kyu: 11, title: '正の数・負の数の四則混合', area: '中1', basic: [
+    (R) => Q(R, () => bi('+', S(R, -9, 9), bi('*', S(R, -6, 6), S(R, -6, 6)))),
+    (R) => Q(R, () => bi('-', S(R, -9, 9), bi('*', S(R, -6, 6), S(R, -6, 6)))),
+    (R) => Q(R, () => bi('+', bi('*', S(R, -6, 6), S(R, -6, 6)), bi('*', S(R, -6, 6), S(R, -6, 6)))),
+    (R) => Q(R, () => bi('-', S(R, -20, 20), bi('/', ...((q, k) => [nm(q * k), nm(k)])(R.nz(-6, 6), R.nz(-6, 6))))),
+    (R) => Q(R, () => bi('+', S(R, -9, 9), pw(nm(-R.int(2, 4)), 2))),
+    (R) => Q(R, () => bi('-', S(R, -9, 9), ng(pw(nm(R.int(2, 4)), 2)))),
+    (R) => Q(R, () => bi('*', bi('-', S(R, -9, 9), S(R, -9, 9)), S(R, -6, 6))),
+    (R) => Q(R, () => bi('+', bi('*', S(R, -9, 9), pw(nm(-R.int(2, 3)), 2)), S(R, -9, 9))),
+    (R) => Q(R, () => { const k = R.nz(-5, 5), q = R.nz(-6, 6); return bi('-', bi('*', S(R, -6, 6), S(R, -6, 6)), bi('/', nm(q * k), nm(k))); }),
+    (R) => Q(R, () => bi('+', S(R, -20, 20), bi('*', pw(nm(-R.int(2, 3)), 3), S(R, -3, 3)))),
+  ], adv: [
+    (R) => Q(R, () => bi('-', bi('*', S(R, -6, 6), ng(pw(nm(R.int(2, 3)), 2))), bi('/', pw(nm(-R.int(2, 4)), 3), S(R, -4, 4))), { intOnly: true }),
+    (R) => Q(R, () => bi('/', bi('-', S(R, -9, 9), pw(nm(-R.int(2, 4)), 2)), S(R, -6, 6)), { intOnly: true }),
+    (R) => Q(R, () => bi('+', SD(R, 0.1, 9, 1), bi('*', SD(R, 0.1, 2, 1), S(R, -9, 9))), D),
+    (R) => Q(R, () => bi('-', SF(R, 6), bi('*', SF(R, 6), S(R, -6, 6)))),
+    (R) => Q(R, () => bi('*', bi('-', SF(R, 6), SF(R, 6)), S(R, -12, 12))),
+    (R) => Q(R, () => bi('-', bi('/', pw(SF(R, 4), 2), SF(R, 6)), SF(R, 6))),
+    (R) => Q(R, () => bi('+', bi('*', S(R, -6, 6), bi('-', S(R, -9, 9), pw(nm(-R.int(2, 3)), 2), true)), S(R, -9, 9))),
+    (R) => Q(R, () => bi('-', bi('/', pw(nm(-R.int(2, 4)), 2), SF(R, 6)), bi('*', SD(R, 0.1, 2, 1), I(R, 2, 9)))),
+    (R) => Q(R, () => bi('-', bi('*', S(R, -4, 4), pw(SF(R, 3), 2)), bi('/', SF(R, 6), S(R, -4, 4)))),
+    (R) => Q(R, () => bi('-', ng(pw(nm(R.int(2, 4)), 2)), bi('*', bi('-', bi('*', S(R, -9, 9), S(R, -3, 3)), pw(nm(-R.int(1, 3)), 3)), S(R, -3, 3)))),
+  ] });
+
+  /* ===== 10級 単位・比・割合 ===== */
+  const U10 = (q, a, sol) => ({ q, a, sol: sol || '' });
+  const blank = '（　　）';
+  const unit = (R, list) => R.retry(() => { const [u1, u2, f] = R.pick(list); const v = f >= 10000 ? dec(R, 0.01, 9, R.pick([1, 2])) : dec(R, 0.1, 30, R.pick([0, 1, 2])); const w = v.mul(fr(f)); if (w.d !== 1 || v.n === 0) return null; return R.chance(0.5) ? U10(`$${fmt(v, 'd')}$ ${u1} $=$ ${blank} ${u2}`, `$${fmt(w, 'd')}$`, `1 ${u1} $=$ $${f}$ ${u2}`) : U10(`$${fmt(w, 'd')}$ ${u2} $=$ ${blank} ${u1}`, `$${fmt(v, 'd')}$`, `1 ${u1} $=$ $${f}$ ${u2}`); });
+  const LEN = [['m', 'cm', 100], ['cm', 'mm', 10], ['km', 'm', 1000], ['m', 'mm', 1000]];
+  const AREA = [['m²', 'cm²', 10000], ['ha', 'm²', 10000], ['km²', 'm²', 1000000], ['a', 'm²', 100]];
+  const VOL = [['L', 'mL', 1000], ['L', 'dL', 10], ['dL', 'mL', 100], ['m³', 'L', 1000], ['L', 'cm³', 1000]];
+  const WT = [['kg', 'g', 1000], ['t', 'kg', 1000], ['g', 'mg', 1000]];
+  const ratioFill = (R) => R.retry(() => { const a = R.int(1, 9), b = R.int(1, 9); if (gcd(a, b) !== 1 || a === b) return null; const k = R.int(2, 9); const pos = R.int(0, 3); const v = [a, b, a * k, b * k]; const sh = v.map((x, i) => i === pos ? blank : `$${x}$`); return U10(`${sh[0]} $:$ ${sh[1]} $=$ ${sh[2]} $:$ ${sh[3]}`, `$${v[pos]}$`, `比の両方に同じ数をかける・わる（$${k}$ 倍）`); });
+  const speed = (R) => R.retry(() => { const t = R.int(0, 2); if (t === 0) { const m = R.int(1, 30) * 50; return U10(`分速 $${m}$ m $=$ 時速 ${blank} km`, `$${fmt(fr(m * 60, 1000), 'd')}$`, `$${m}*60=${m * 60}$（m）$=${fmt(fr(m * 60, 1000), 'd')}$ km`); } if (t === 1) { const km = R.int(1, 30) * 6; return U10(`時速 $${km}$ km $=$ 分速 ${blank} m`, `$${km * 1000 / 60}$`, `$${km}$ km $=${km * 1000}$ m、$${km * 1000}÷60=${km * 1000 / 60}$`); } const s = R.int(1, 30); return U10(`秒速 $${s}$ m $=$ 分速 ${blank} m`, `$${s * 60}$`, `$${s}*60=${s * 60}$`); });
+  const pct = (R) => R.retry(() => { const t = R.int(0, 3); const p = R.pick([5, 10, 15, 20, 25, 30, 40, 45, 60, 75, 80, 120]); if (t === 0) return U10(`$${fmt(fr(p, 100), 'd')}$ $=$ ${blank} %`, `$${p}$`, `小数を100倍する`); if (t === 1) return U10(`$${p}$ % $=$ ${blank}（小数）`, `$${fmt(fr(p, 100), 'd')}$`, `100でわる`); const base = R.int(1, 40) * 20; const v = fr(base * p, 100); if (v.d !== 1) return null; if (t === 2) return U10(`$${base}$ g の $${p}$ % は ${blank} g`, `$${v.n}$`, `$${base}*${fmt(fr(p, 100), 'd')}=${v.n}$`); return U10(`${blank} 円の $${p}$ % は $${v.n}$ 円`, `$${base}$`, `$${v.n}÷${fmt(fr(p, 100), 'd')}=${base}$`); });
+  const wari = (R) => R.retry(() => { const w = R.int(1, 9), b = R.int(0, 9); const v = fr(w * 10 + b, 100); return R.chance(0.5) ? U10(`$${fmt(v, 'd')}$ $=$ ${blank} 割 ${blank} 分`, `$${w}$ 割 $${b}$ 分`, `$0.1$ が1割、$0.01$ が1分`) : U10(`$${w}$ 割 $${b}$ 分 $=$ ${blank}（小数）`, `$${fmt(v, 'd')}$`, `1割 $=0.1$、1分 $=0.01$`); });
+  const time = (R) => R.retry(() => { const t = R.int(0, 2); if (t === 0) { const h = fr(R.int(1, 19), R.pick([2, 4, 5])); if (h.d === 1) return null; return U10(`$${fmt(h, 'd')}$ 時間 $=$ ${blank} 分`, `$${h.mul(fr(60)).n}$`, `$${fmt(h, 'd')}*60$`); } if (t === 1) { const m = R.int(61, 200); return U10(`$${m}$ 分 $=$ ${blank} 時間 ${blank} 分`, `$${Math.floor(m / 60)}$ 時間 $${m % 60}$ 分`, `$${m}÷60=${Math.floor(m / 60)}$ あまり $${m % 60}$`); } const m = R.int(2, 9) * 6; return U10(`$${m}$ 分 $=$ ${blank} 時間（小数）`, `$${fmt(fr(m, 60), 'd')}$`, `$${m}÷60$`); });
+  const simpRatio = (R) => R.retry(() => { const a = R.int(1, 9), b = R.int(1, 9); if (gcd(a, b) !== 1 || a === b) return null; const k = R.pick([2, 3, 4, 6, 8, 12]); return U10(`$${a * k}:${b * k}$ を最も簡単な整数の比にすると ${blank}`, `$${a}:${b}$`, `両方を $${k}$ でわる`); });
+  const ratioDec = (R) => R.retry(() => { const a = R.int(1, 9), b = R.int(1, 9); if (gcd(a, b) !== 1 || a === b) return null; return U10(`$${fmt(fr(a, 10), 'd')}:${fmt(fr(b, 10), 'd')}$ を最も簡単な整数の比にすると ${blank}`, `$${a}:${b}$`, `両方を10倍する`); });
+  const ratioFr = (R) => R.retry(() => { const p = frac(R, 6), q = frac(R, 6); if (p.eq(q)) return null; const L = p.d * q.d / gcd(p.d, q.d); const a = p.mul(fr(L)).n, b = q.mul(fr(L)).n; const g = gcd(a, b); return U10(`$${F.fmt(p)}:${F.fmt(q)}$ を最も簡単な整数の比にすると ${blank}`, `$${a / g}:${b / g}$`, `分母の最小公倍数 $${L}$ をかける`); });
+  add({ id: 'kk10', kyu: 10, title: '単位・比・割合', area: '小学校の復習', ins: '（　　）にあてはまる数を書きなさい。', basic: [
+    (R) => unit(R, LEN), (R) => unit(R, AREA.slice(0, 1).concat(AREA.slice(3))), (R) => unit(R, VOL), (R) => unit(R, WT), (R) => time(R),
+    (R) => speed(R), (R) => ratioFill(R), (R) => simpRatio(R), (R) => pct(R), (R) => pct(R),
+  ], adv: [
+    (R) => unit(R, LEN), (R) => unit(R, AREA), (R) => unit(R, VOL), (R) => time(R), (R) => speed(R),
+    (R) => ratioFill(R), (R) => ratioDec(R), (R) => ratioFr(R), (R) => wari(R), (R) => pct(R),
+  ] });
+
+  /* ===== 文字式の部品 ===== */
+  const PL = (list) => Poly.lin(list);
+  const ps = (p) => p.toString(); // 3x-2y+5
+  const lin = (a, x, b) => PL([[a, x], [b, '']]);
+  const coefS = (c, v) => { c = F.of(c); if (!v) return F.fmt(c); if (c.eq(1)) return v; if (c.eq(-1)) return '-' + v; return F.fmt(c) + v; };
+  const kpar = (k, p) => `${F.fmt(k) === '1' ? '' : F.fmt(k) === '-1' ? '-' : F.fmt(k)}(${ps(p)})`;
+  const sgnk = (k) => (F.of(k).n < 0 ? F.fmt(k) : '+' + F.fmt(k));
+  const sk = (k, p) => `${F.of(k).n < 0 ? '-' : '+'}${F.of(k).abs().eq(1) ? '' : F.fmt(F.of(k).abs())}(${ps(p)})`;
+  const fracOf = (p, d) => `{${ps(p)}/${d}}`;
+  const ans = (p) => `$${ps(p)}$`;
+  const ALG = (q, res, sol) => ({ q: `$${q}$`, a: ans(res), sol: sol ? `$=${sol}$` : '' });
+
+  /* ===== 9級 文字式の計算（1次式） ===== */
+  const v1 = (R) => R.pick(['x', 'a', 'y']);
+  add({ id: 'kk9', kyu: 9, title: '1次式の計算', area: '中1', basic: [
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), b = R.nz(-9, 9); if (a + b === 0) return null; return ALG(`${coefS(a, x)}${coefS(b, x).startsWith('-') ? '' : '+'}${coefS(b, x)}`, lin(a + b, x, 0)); }),
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), b = R.nz(-9, 9), c = R.nz(-9, 9), d = R.nz(-9, 9); if (a + c === 0) return null; const q = PL([[a, x], [b, ''], [c, x], [d, '']]); return ALG(`${coefS(a, x)}${sgnk(b)}${c < 0 ? '' : '+'}${coefS(c, x)}${sgnk(d)}`, q, `${coefS(a, x)}${c < 0 ? '' : '+'}${coefS(c, x)}${sgnk(b)}${sgnk(d)}=${ps(q)}`); }),
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), k = R.nz(-9, 9); return ALG(`${coefS(a, x)}*${k < 0 ? `(${k})` : k}`, lin(a * k, x, 0)); }),
+    (R) => R.retry(() => { const x = v1(R), q = R.nz(-9, 9), k = R.nz(-6, 6); if (Math.abs(k) === 1) return null; return ALG(`${coefS(q * k, x)}÷${k < 0 ? `(${k})` : k}`, lin(q, x, 0)); }),
+    (R) => R.retry(() => { const x = v1(R), k = R.nz(-6, 6), a = R.nz(-9, 9), b = R.nz(-9, 9); if (Math.abs(k) === 1) return null; const p = lin(a, x, b); return ALG(kpar(k, p), p.scale(k)); }),
+    (R) => R.retry(() => { const x = v1(R), k = R.nz(-6, 6), a = R.nz(-6, 6), b = R.nz(-6, 6); if (Math.abs(k) === 1) return null; const p = lin(a * k, x, b * k); return ALG(`(${ps(p)})÷${k < 0 ? `(${k})` : k}`, lin(a, x, b), `${fracOf(p, k)}`.replace(/^/, '') && null); }),
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), b = R.nz(-9, 9), c = R.nz(-9, 9); const p = lin(b, x, c); const res = lin(a, x, 0).add(p); if (res.t.size === 0) return null; return ALG(`${coefS(a, x)}+(${ps(p)})`, res, `${coefS(a, x)}${ps(p).startsWith('-') ? '' : '+'}${ps(p)}=${ps(res)}`); }),
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), b = R.nz(-9, 9), c = R.nz(-9, 9); const p = lin(b, x, c); const res = lin(a, x, 0).sub(p); if (res.t.size === 0) return null; return ALG(`${coefS(a, x)}-(${ps(p)})`, res, `${coefS(a, x)}${ps(p.scale(-1)).startsWith('-') ? '' : '+'}${ps(p.scale(-1))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const x = v1(R), p = lin(R.nz(-6, 6), x, R.nz(-9, 9)), q = lin(R.nz(-6, 6), x, R.nz(-9, 9)); const res = p.sub(q); if (res.t.size < 2) return null; return ALG(`(${ps(p)})-(${ps(q)})`, res, `${ps(p)}${ps(q.scale(-1)).startsWith('-') ? '' : '+'}${ps(q.scale(-1))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const x = v1(R), k = R.nz(-5, 5), m = R.nz(-5, 5), p = lin(R.nz(-5, 5), x, R.nz(-6, 6)), q = lin(R.nz(-5, 5), x, R.nz(-6, 6)); if (Math.abs(k) === 1 || Math.abs(m) === 1) return null; const res = p.scale(k).add(q.scale(m)); if (res.t.size < 2) return null; const e1 = p.scale(k), e2 = q.scale(m); return ALG(`${kpar(k, p)}${sk(m, q)}`, res, `${ps(e1)}${ps(e2).startsWith('-') ? '' : '+'}${ps(e2)}=${ps(res)}`); }),
+  ], adv: [
+    (R) => R.retry(() => { const x = v1(R), a = frac(R, 6), b = frac(R, 6); const s = R.chance(0.5) ? 1 : -1; const res = PL([[a, x], [b.mul(fr(s)), x]]); if (res.t.size === 0) return null; return ALG(`${coefS(a, x)}${s > 0 ? '+' : '-'}${coefS(b, x)}`, res); }),
+    (R) => R.retry(() => { const x = v1(R), a = R.nz(-9, 9), k = frac(R, 6).mul(fr(R.sign())); const res = lin(fr(a).mul(k), x, 0); return ALG(`${coefS(a, x)}*(${F.fmt(k)})`.replace(/\*\(([^-][^)]*)\)/, '*$1'), res); }),
+    (R) => R.retry(() => { const x = v1(R), k = frac(R, 6).mul(fr(R.sign())); const q = R.nz(-9, 9); const a = fr(q).mul(k); return ALG(`${coefS(a, x)}÷(${F.fmt(k)})`.replace(/÷\(([^-][^)]*)\)/, '÷$1'), lin(q, x, 0)); }),
+    (R) => R.retry(() => { const x = v1(R), k = frac(R, 6); const a = R.nz(-4, 4) * k.d, b = R.nz(-4, 4) * k.d; const p = lin(a, x, b); return ALG(`${F.fmt(k)}(${ps(p)})`, p.scale(k)); }),
+    (R) => R.retry(() => { const x = v1(R), d = R.int(2, 6); const p = lin(R.nz(-9, 9), x, R.nz(-9, 9)); const k = R.nz(-4, 4) * d; return ALG(`${fracOf(p, d)}*${k < 0 ? `(${k})` : k}`, p.scale(fr(k, d))); }),
+    (R) => R.retry(() => { const x = v1(R), k = frac(R, 4), m = frac(R, 4); const p = lin(R.nz(-3, 3) * k.d, x, R.nz(-3, 3) * k.d), q = lin(R.nz(-3, 3) * m.d, x, R.nz(-3, 3) * m.d); const s = R.sign(); const res = p.scale(k).add(q.scale(m.mul(fr(s)))); if (res.t.size < 1) return null; return ALG(`${F.fmt(k)}(${ps(p)})${s > 0 ? '+' : '-'}${F.fmt(m)}(${ps(q)})`, res, `${ps(p.scale(k))}${ps(q.scale(m.mul(fr(s)))).startsWith('-') ? '' : '+'}${ps(q.scale(m.mul(fr(s))))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const x = v1(R), k = R.nz(-5, 5), m = R.nz(-5, 5); if (Math.abs(k) < 2 || Math.abs(m) < 2) return null; const p = lin(R.nz(-6, 6), x, R.nz(-9, 9)), q = lin(R.nz(-6, 6), x, R.nz(-9, 9)); const res = p.scale(k).sub(q.scale(m)); if (res.t.size < 2) return null; return ALG(`${kpar(k, p)}${sk(-m, q)}`, res, `${ps(p.scale(k))}${ps(q.scale(-m)).startsWith('-') ? '' : '+'}${ps(q.scale(-m))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const x = v1(R), d = R.pick([2, 3, 4]), e = R.pick([2, 3, 5, 6]); if (d === e) return null; const p = lin(R.nz(-5, 5), x, R.nz(-5, 5)), q = lin(R.nz(-5, 5), x, R.nz(-5, 5)); const res = p.scale(fr(1, d)).add(q.scale(fr(1, e))); const L = d * e / gcd(d, e); const num = p.scale(fr(L / d)).add(q.scale(fr(L / e))); if (num.t.size < 2) return null; const g = num.t.size ? [...num.t.values()].reduce((s, c) => gcd(s, c.n), 0) : 1; void g; return { q: `$${fracOf(p, d)}+${fracOf(q, e)}$`, a: `$${fracOf(num, L)}$`.replace(/^\$\{(.*)\/(\d+)\}\$$/, (m0, A, B) => m0), sol: `$={${ps(p.scale(fr(L / d)))}/${L}}+{${ps(q.scale(fr(L / e)))}/${L}}$`, _chk: res }; }),
+    (R) => R.retry(() => { const x = v1(R), d = R.pick([2, 3, 4, 5]); const p = lin(R.nz(-5, 5), x, R.nz(-9, 9)); const a = R.nz(-4, 4), b = R.nz(-4, 4); const num = lin(a * d, x, b * d).add(p); if (num.t.size < 2) return null; return { q: `$${ps(lin(a, x, b))}+${fracOf(p, d)}$`, a: `$${fracOf(num, d)}$`, sol: `$={${ps(lin(a * d, x, b * d))}/${d}}+{${ps(p)}/${d}}$` }; }),
+    (R) => R.retry(() => { const x = v1(R), d = R.pick([2, 3, 4, 6]), e = R.pick([2, 3, 4, 6]); if (d === e) return null; const L = d * e / gcd(d, e); const p = lin(R.nz(-5, 5), x, R.nz(-9, 9)), q = lin(R.nz(-5, 5), x, R.nz(-9, 9)); const num = p.scale(fr(L / d)).sub(q.scale(fr(L / e))); if (num.t.size < 2) return null; return { q: `$${fracOf(p, d)}-${fracOf(q, e)}$`, a: `$${fracOf(num, L)}$`, sol: `$={${ps(p.scale(fr(L / d)))}/${L}}-{${ps(q.scale(fr(L / e)))}/${L}}={${ps(p.scale(fr(L / d)))}${ps(q.scale(fr(-L / e))).startsWith('-') ? '' : '+'}${ps(q.scale(fr(-L / e)))}/${L}}$` }; }),
+  ] });
+
+  /* ===== 8級 1次方程式・比例式 ===== */
+  const solx = (v) => `$x=${F.fmt(v)}$`;
+  const EQ = (lhs, rhs, x, sol) => ({ q: `$${lhs}=${rhs}$`, a: solx(x), sol: sol || '' });
+  /** ax+b=cx+d を解く途中の式 */
+  const linSol = (a, b, c, d) => { a = F.of(a); b = F.of(b); c = F.of(c); d = F.of(d); const A = a.sub(c), B = d.sub(b); const x = B.div(A); const L = PL([[a, 'x']]).sub(PL([[c, 'x']])); return { x, sol: `$${coefS(a, 'x')}${c.n === 0 ? '' : (c.neg().n < 0 ? '' : '+') + coefS(c.neg(), 'x')}=${F.fmt(d)}${b.n === 0 ? '' : (b.neg().n < 0 ? '' : '+') + F.fmt(b.neg())}$<br>$${coefS(A, 'x')}=${F.fmt(B)}$<br>$x=${F.fmt(x)}$`, _L: L }; };
+  const intSol = (R, f) => R.retry(() => { const x = R.nz(-9, 9); return f(x); });
+  add({ id: 'kk8', kyu: 8, title: '1次方程式・比例式', area: '中1', ins: '次の方程式・比例式を解きなさい。', basic: [
+    (R) => intSol(R, (x) => { const a = R.nz(-9, 9); if (Math.abs(a) < 2) return null; return EQ(coefS(a, 'x'), a * x, x, `$x=${a * x}÷${a < 0 ? `(${a})` : a}=${x}$`); }),
+    (R) => intSol(R, (x) => { const a = R.nz(-9, 9), b = R.nz(-15, 15); if (Math.abs(a) < 2) return null; const s = linSol(a, b, 0, a * x + b); return EQ(`${coefS(a, 'x')}${sgnk(b)}`, a * x + b, x, s.sol); }),
+    (R) => intSol(R, (x) => { const a = R.nz(-9, 9), c = R.nz(-9, 9), b = R.int(-15, 15); if (a === c) return null; const d = a * x + b - c * x; const s = linSol(a, b, c, d); return EQ(`${coefS(a, 'x')}${b ? sgnk(b) : ''}`, `${coefS(c, 'x')}${d ? sgnk(d) : ''}`, x, s.sol); }),
+    (R) => intSol(R, (x) => { const a = R.nz(-9, 9), b = R.nz(-15, 15), c = R.nz(-9, 9), d0 = R.nz(-15, 15); if (a === c) return null; const d = a * x + b - c * x; if (!d0) return null; const s = linSol(a, b, c, d); return EQ(`${coefS(a, 'x')}${sgnk(b)}`, `${coefS(c, 'x')}${d ? sgnk(d) : ''}`, x, s.sol); }),
+    (R) => intSol(R, (x) => { const k = R.nz(-5, 5), p = R.nz(-6, 6), q = R.nz(-9, 9), c = R.nz(-9, 9); if (Math.abs(k) < 2) return null; const a = k * p, b = k * q; if (a === c) return null; const d = a * x + b - c * x; const s = linSol(a, b, c, d); return EQ(kpar(k, lin(p, 'x', q)), `${coefS(c, 'x')}${d ? sgnk(d) : ''}`, x, `$${ps(lin(a, 'x', b))}=${coefS(c, 'x')}${d ? sgnk(d) : ''}$<br>` + s.sol.slice(0)); }),
+    (R) => intSol(R, (x) => { const k = R.nz(-5, 5), p = R.nz(-6, 6), q = R.nz(-9, 9), a0 = R.nz(-9, 9); if (Math.abs(k) < 2) return null; const a = a0 + k * p, b = k * q; if (a === 0) return null; const rhs = a * x + b; const s = linSol(a, b, 0, rhs); return EQ(`${coefS(a0, 'x')}${sk(k, lin(p, 'x', q))}`, rhs, x, `$${ps(lin(a, 'x', b))}=${rhs}$<br>` + s.sol); }),
+    (R) => R.retry(() => { const x = R.int(1, 20) * R.pick([1, 2]); const [a, b] = [R.int(1, 9), R.int(1, 9)]; const c = fr(x * b, a); if (c.d !== 1 || gcd(a, b) !== 1 || a === b) return null; return { q: `$x:${c.n}=${a}:${b}$`, a: `$x=${x}$`, sol: `$${b}x=${c.n}*${a}$<br>$x=${x}$` }; }),
+    (R) => R.retry(() => { const x = R.int(1, 30); const a = R.int(1, 9), b = R.int(1, 9); const c = fr(a * x, b); if (c.d !== 1 || gcd(a, b) !== 1 || a === b) return null; return { q: `$${a}:${b}=${c.n}:x$`, a: `$x=${x}$`, sol: `$${a}x=${b}*${c.n}$<br>$x=${x}$` }; }),
+    (R) => R.retry(() => { const x = R.nz(-9, 9); const a = dec(R, 0.1, 3, 1), c = dec(R, 0.1, 3, 1); if (a.eq(c) || a.d === 1) return null; const b = dec(R, -5, 5, 1); const d = a.mul(fr(x)).add(b).sub(c.mul(fr(x))); const s = linSol(a.mul(fr(10)), b.mul(fr(10)), c.mul(fr(10)), d.mul(fr(10))); if (!s.x.eq(fr(x))) return null; return { q: `$${coefS(a, 'x').replace(/\{(\d+)\/(\d+)\}/, (m0) => m0)}$`.replace(/.*/, '') + `$${fmt(a, 'd')}x${b.n ? (b.n < 0 ? '' : '+') + fmt(b, 'd') : ''}=${c.eq(1) ? '' : fmt(c, 'd')}x${d.n ? (d.n < 0 ? '' : '+') + fmt(d, 'd') : ''}$`, a: solx(fr(x)), sol: `両辺を10倍する<br>$${ps(PL([[a.mul(fr(10)), 'x'], [b.mul(fr(10)), '']]))}=${ps(PL([[c.mul(fr(10)), 'x'], [d.mul(fr(10)), '']]))}$<br>` + s.sol }; }),
+    (R) => R.retry(() => { const x = R.nz(-9, 9) * R.pick([1, 2, 3]); const d1 = R.pick([2, 3, 4]), d2 = R.pick([2, 3, 6]); if (d1 === d2) return null; const a = R.nz(-5, 5), b = R.nz(-9, 9); const L = d1 * d2 / gcd(d1, d2); const lhs = fr(a * x + b, d1); const c = R.nz(-5, 5); const rhsC = lhs.sub(fr(c * x, d2)); // {ax+b/d1} = {cx/d2} + r
+      const r = rhsC; if (r.d !== 1 || a * L / d1 === c * L / d2) return null; const s = linSol(fr(a * L / d1), fr(b * L / d1), fr(c * L / d2), r.mul(fr(L))); if (!s.x.eq(fr(x))) return null; return { q: `$${fracOf(lin(a, 'x', b), d1)}={${coefS(c, 'x')}/${d2}}${r.n ? sgnk(r) : ''}$`, a: solx(fr(x)), sol: `両辺に $${L}$ をかける<br>$${ps(lin(a * L / d1, 'x', b * L / d1))}=${ps(lin(c * L / d2, 'x', r.n * L))}$<br>` + s.sol }; }),
+  ], adv: [] });
+  const k8 = U.kyu.find(k => k.id === 'kk8'); k8.adv = k8.basic.slice(2).concat([
+    (R) => R.retry(() => { const x = R.nz(-9, 9); const a = dec(R, 0.01, 0.5, 2), b = dec(R, -3, 3, 2); const c = dec(R, 0.01, 0.5, 2); if (a.eq(c)) return null; const d = a.mul(fr(x)).add(b).sub(c.mul(fr(x))); if (d.mul(fr(100)).d !== 1) return null; const s = linSol(a.mul(fr(100)), b.mul(fr(100)), c.mul(fr(100)), d.mul(fr(100))); return { q: `$${fmt(a, 'd')}x${b.n ? (b.n < 0 ? '' : '+') + fmt(b, 'd') : ''}=${fmt(c, 'd')}x${d.n ? (d.n < 0 ? '' : '+') + fmt(d, 'd') : ''}$`, a: solx(fr(x)), sol: `両辺を100倍する<br>` + s.sol }; }),
+    (R) => R.retry(() => { const x = R.int(1, 12); const a = R.int(1, 6), b = R.int(1, 6); const p = R.int(1, 5); // (x+p):a = ...:b
+      const L = fr((x + p) * b, a); if (L.d !== 1 || gcd(a, b) !== 1) return null; return { q: `$(x+${p}):${a}=${L.n}:${b}$`, a: `$x=${x}$`, sol: `$${b}(x+${p})=${a}*${L.n}$<br>$${b}x+${b * p}=${a * L.n}$<br>$x=${x}$` }; }),
+  ]);
+
+  /* ===== 7級 式の計算（多項式・単項式） ===== */
+  const vv = (R) => R.pick([['x', 'y'], ['a', 'b']]);
+  const P2 = (R, x, y, k = 9) => R.retry(() => { const a = R.nz(-k, k), b = R.nz(-k, k), c = R.int(-k, k); return PL([[a, x], [b, y], [c, '']]); });
+  /** 単項式 c x^p y^q */
+  const mono = (c, vs) => Poly.of(Object.entries(vs).map(([v, e]) => e ? (e === 1 ? v : `${v}^${e}`) : '').join(''), c);
+  const mstr = (p) => ps(p);
+  const mpar = (p) => { const s = mstr(p); return s.startsWith('-') ? `(${s})` : s; };
+  const mdiv = (a, b) => { // 単項式 a÷b（b は単項式）
+    const [[ka, ca]] = [...a.t.entries()], [[kb, cb]] = [...b.t.entries()]; const ea = {}, eb = {}; (ka.match(/[a-z]\d*/g) || []).forEach(s => ea[s[0]] = +(s.slice(1) || 1)); (kb.match(/[a-z]\d*/g) || []).forEach(s => eb[s[0]] = +(s.slice(1) || 1));
+    void ea; void eb; return null; };
+  void mdiv;
+  add({ id: 'kk7', kyu: 7, title: '多項式の加減・単項式の乗除', area: '中2', basic: [
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.nz(-9, 9), b = R.nz(-9, 9), c = R.nz(-9, 9), d = R.nz(-9, 9); const res = PL([[a, x], [b, y], [c, x], [d, y]]); if (res.t.size < 2) return null; return ALG(`${coefS(a, x)}${b < 0 ? '' : '+'}${coefS(b, y)}${c < 0 ? '' : '+'}${coefS(c, x)}${d < 0 ? '' : '+'}${coefS(d, y)}`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = P2(R, x, y), q = P2(R, x, y); const res = p.add(q); if (res.t.size < 2) return null; return ALG(`(${ps(p)})+(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = P2(R, x, y), q = P2(R, x, y); const res = p.sub(q); if (res.t.size < 2) return null; return ALG(`(${ps(p)})-(${ps(q)})`, res, `${ps(p)}${ps(q.scale(-1)).startsWith('-') ? '' : '+'}${ps(q.scale(-1))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = R.nz(-6, 6); if (Math.abs(k) < 2) return null; const p = P2(R, x, y); return ALG(kpar(k, p), p.scale(k)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = R.nz(-5, 5), m = R.nz(-5, 5); if (Math.abs(k) < 2 || Math.abs(m) < 2) return null; const p = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y]]), q = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y]]); const res = p.scale(k).sub(q.scale(m)); if (res.t.size < 2) return null; return ALG(`${kpar(k, p)}-${m < 0 ? `(${m})` : m}(${ps(q)})`, res, `${ps(p.scale(k))}${ps(q.scale(-m)).startsWith('-') ? '' : '+'}${ps(q.scale(-m))}=${ps(res)}`); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = mono(R.nz(-6, 6), { [x]: 1 }), b = mono(R.nz(-6, 6), { [y]: 1 }); return ALG(`${mstr(a)}*${mpar(b)}`, a.mul(b)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = mono(R.nz(-5, 5), { [x]: R.int(1, 2), [y]: R.int(0, 1) }), b = mono(R.nz(-5, 5), { [x]: R.int(0, 1), [y]: 1 }); return ALG(`${mstr(a)}*${mpar(b)}`, a.mul(b)); }),
+    (R) => R.retry(() => { const [x] = vv(R); const k = R.nz(-4, 4); const a = mono(k, { [x]: 1 }); return ALG(`(${mstr(a)})^2`, a.mul(a)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = mono(R.nz(-6, 6), { [x]: 1 }); const ey = R.int(0, 1), ex = ey ? R.int(0, 1) : 1; const qt = mono(R.nz(-6, 6), { [y]: ey, [x]: ex }); const a = b.mul(qt); return ALG(`${mstr(a)}÷${mpar(b)}`, qt); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = mono(R.nz(-5, 5), { [x]: 1, [y]: R.int(0, 1) }); const qt = mono(R.nz(-5, 5), { [x]: R.int(0, 1), [y]: R.int(1, 2) }); const a = b.mul(qt); return ALG(`${mstr(a)}÷${mpar(b)}`, qt); }),
+  ], adv: [
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[R.nz(-5, 5), `${x}^2`], [R.nz(-5, 5), `${x}${y}`], [R.int(-5, 5), `${y}^2`]]), q = PL([[R.nz(-5, 5), `${x}^2`], [R.nz(-5, 5), `${x}${y}`], [R.int(-5, 5), `${y}^2`]]); const res = p.sub(q); if (res.t.size < 2) return null; return ALG(`(${ps(p)})-(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const d = R.pick([2, 3, 4]), e = R.pick([2, 3, 6]); if (d === e) return null; const L = d * e / gcd(d, e); const p = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y]]), q = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y]]); const num = p.scale(fr(L / d)).sub(q.scale(fr(L / e))); if (num.t.size < 2) return null; return { q: `$${fracOf(p, d)}-${fracOf(q, e)}$`, a: `$${fracOf(num, L)}$`, sol: `$={${ps(p.scale(fr(L / d)))}/${L}}-{${ps(q.scale(fr(L / e)))}/${L}}$` }; }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = frac(R, 4); const p = PL([[R.nz(-3, 3) * k.d, x], [R.nz(-3, 3) * k.d, y]]); return ALG(`${F.fmt(k)}(${ps(p)})`, p.scale(k)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = mono(frac(R, 6).mul(fr(R.sign())), { [x]: 1, [y]: 1 }), b = mono(R.nz(-6, 6), { [x]: 1 }); return ALG(`${mstr(a)}*${mpar(b)}`, a.mul(b)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = mono(R.nz(-3, 3), { [x]: 1, [y]: R.int(0, 1) }); const b = mono(R.nz(-4, 4), { [y]: 1 }); return ALG(`(${mstr(a)})^2*${mpar(b)}`, a.mul(a).mul(b)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = mono(R.nz(-3, 3), { [x]: 1 }); return ALG(`(${mstr(a)})^3`, a.mul(a).mul(a)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = mono(frac(R, 6).mul(fr(R.sign())), { [x]: 1 }); const qt = mono(R.nz(-6, 6), { [x]: R.int(0, 1), [y]: 1 }); const a = b.mul(qt); const [[, ca]] = [...a.t.entries()]; if (ca.d !== 1) return null; return ALG(`${mstr(a)}÷(${mstr(b)})`, qt); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = mono(R.nz(-4, 4), { [x]: 1 }), c = mono(R.nz(-4, 4), { [y]: 1 }); const qt = mono(R.nz(-4, 4), { [x]: R.int(1, 2), [y]: R.int(0, 1) }); const a = qt.mul(b).scale(fr(1)); // a÷b×c = qt×c
+      return ALG(`${mstr(a)}÷${mpar(b)}*${mpar(c)}`, qt.mul(c)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = mono(R.nz(-3, 3), { [x]: 1, [y]: 1 }); const c = mono(R.nz(-3, 3), { [x]: 1 }); const qt = mono(R.nz(-3, 3), { [x]: R.int(0, 1), [y]: R.int(1, 2) }); const a = qt.mul(c); // a×b÷c = qt×b
+      return ALG(`${mstr(a)}*${mpar(b)}÷${mpar(c)}`, qt.mul(b)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = R.nz(-5, 5), m = R.nz(-5, 5); if (Math.abs(k) < 2 || Math.abs(m) < 2) return null; const p = P2(R, x, y, 6), q = P2(R, x, y, 6); const res = p.scale(k).sub(q.scale(m)); if (res.t.size < 2) return null; return ALG(`${kpar(k, p)}-${m < 0 ? `(${m})` : m}(${ps(q)})`, res, `${ps(p.scale(k))}${ps(q.scale(-m)).startsWith('-') ? '' : '+'}${ps(q.scale(-m))}=${ps(res)}`); }),
+  ] });
+
+  /* ===== 6級 連立方程式 ===== */
+  const sysH = (a, b) => `<span style="display:inline-flex;align-items:center;vertical-align:middle;margin:0.5mm 0"><span style="font-size:230%;line-height:1;font-weight:300;margin-right:0.6mm;transform:scaleX(0.55)">{</span><span style="display:inline-flex;flex-direction:column;line-height:1.75"><span>$${a}$</span><span>$${b}$</span></span></span>`;
+  const eqs = (a, b, c) => `${ps(PL([[a, 'x'], [b, 'y']]))}=${c}`;
+  const SYS = (q, x, y, sol) => ({ q, a: `$x=${F.fmt(x)}$，$y=${F.fmt(y)}$`, sol });
+  const solveSol = (a, b, c, d, e, f, x, y) => { // ax+by=c, dx+ey=f を加減法で
+    const L = Math.abs(a * d) / gcd(a, d); const m1 = L / a, m2 = L / d; const B = b * m1 - e * m2, C = c * m1 - f * m2; assert(B * y === C, '連立の検算');
+    return `$x$ の係数をそろえる（①×$${Math.abs(m1)}$，②×$${Math.abs(m2)}$）<br>ひくと $${coefS(B, 'y')}=${C}$ より $y=${y}$<br>①に代入して $x=${x}$`; };
+  const genSys = (R, f) => R.retry(() => { const x = R.nz(-6, 6), y = R.nz(-6, 6); return f(x, y); });
+  add({ id: 'kk6', kyu: 6, title: '連立方程式', area: '中2', ins: '次の連立方程式を解きなさい。', h: 2, basic: [
+    (R) => genSys(R, (x, y) => { const k = R.pick([1, 1, 2, 3]); return SYS(sysH(`x+y=${x + y}`, `${k === 1 ? '' : k}x-y=${k * x - y}`), x, y, `2式をたすと $y$ が消える：$${k + 1}x=${(k + 1) * x}$，$x=${x}$<br>代入して $y=${y}$`); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-5, 5), b = R.nz(-5, 5), e = -b; const d = R.nz(-5, 5); if (a + d === 0) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, `2式をたすと $y$ が消える：$${coefS(a + d, 'x')}=${(a + d) * x}$，$x=${x}$<br>代入して $y=${y}$`); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-5, 5), b = R.nz(-5, 5), d = a, e = R.nz(-5, 5); if (b === e) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, `2式をひくと $x$ が消える：$${coefS(b - e, 'y')}=${(b - e) * y}$，$y=${y}$<br>代入して $x=${x}$`); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-5, 5), b = R.nz(-5, 5), k = R.nz(-3, 3); if (Math.abs(k) < 2) return null; const d = a * k, e = R.nz(-6, 6); if (e === b * k) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, solveSol(a, b, a * x + b * y, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, solveSol(a, b, a * x + b * y, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const m = R.nz(-4, 4), c = y - m * x; const a = R.nz(-5, 5), b = R.nz(-5, 5); if (a + b * m === 0) return null; return SYS(sysH(`y=${ps(lin(m, 'x', c))}`, eqs(a, b, a * x + b * y)), x, y, `代入法：$${coefS(a, 'x')}${b < 0 ? '' : '+'}${b}(${ps(lin(m, 'x', c))})=${a * x + b * y}$ を解いて $x=${x}$<br>$y=${y}$`); }),
+    (R) => genSys(R, (x, y) => { const m = R.nz(-4, 4), c = x - m * y; const a = R.nz(-5, 5), b = R.nz(-5, 5); if (a * m + b === 0) return null; return SYS(sysH(`x=${ps(lin(m, 'y', c))}`, eqs(a, b, a * x + b * y)), x, y, `代入法：$x$ に $${ps(lin(m, 'y', c))}$ を入れて $y=${y}$<br>$x=${x}$`); }),
+    (R) => genSys(R, (x, y) => { const m = R.nz(-4, 4), c = y - m * x; const n = R.nz(-4, 4); if (m === n) return null; const c2 = y - n * x; return SYS(sysH(`y=${ps(lin(m, 'x', c))}`, `y=${ps(lin(n, 'x', c2))}`), x, y, `$${ps(lin(m, 'x', c))}=${ps(lin(n, 'x', c2))}$ を解いて $x=${x}$<br>$y=${y}$`); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, solveSol(a, b, a * x + b * y, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; const c = a * x + b * y, f = d * x + e * y; return SYS(sysH(`${ps(PL([[a, 'x']]))}=${ps(PL([[-b, 'y'], [c, '']]))}`, eqs(d, e, f)), x, y, `①を $${ps(PL([[a, 'x'], [b, 'y']]))}=${c}$ に直す<br>` + solveSol(a, b, c, d, e, f, x, y)); }),
+  ], adv: [
+    (R) => genSys(R, (x, y) => { const k = R.nz(-3, 3), p = R.nz(-3, 3), q = R.nz(-3, 3), r = R.nz(-4, 4); if (Math.abs(k) < 2) return null; const a = k * p + r, b = k * q; const d = R.nz(-5, 5), e = R.nz(-5, 5); if (a * e - b * d === 0 || a === 0 || Math.abs(a) === Math.abs(d)) return null; const c = a * x + b * y; return SYS(sysH(`${kpar(k, PL([[p, 'x'], [q, 'y']]))}${r < 0 ? '' : '+'}${coefS(r, 'x')}=${c}`, eqs(d, e, d * x + e * y)), x, y, `①のかっこをはずして $${ps(PL([[a, 'x'], [b, 'y']]))}=${c}$<br>` + solveSol(a, b, c, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = dec(R, 0.1, 0.9, 1), b = dec(R, 0.1, 0.9, 1); if (a.d === 1 || b.d === 1) return null; const d = R.nz(-5, 5), e = R.nz(-5, 5); const A = a.n * 10 / a.d, B = b.n * 10 / b.d; if (A * e - B * d === 0 || Math.abs(A) === Math.abs(d)) return null; const c = a.mul(fr(x)).add(b.mul(fr(y))); return SYS(sysH(`${fmt(a, 'd')}x+${fmt(b, 'd')}y=${fmt(c, 'd')}`, eqs(d, e, d * x + e * y)), x, y, `①を10倍：$${ps(PL([[A, 'x'], [B, 'y']]))}=${F.fmt(c.mul(fr(10)))}$<br>` + solveSol(A, B, c.mul(fr(10)).valueOf(), d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const p = R.pick([2, 3, 4]), q = R.pick([2, 3, 5, 6]); if (p === q || x % p || y % q) return null; const c = x / p + y / q; const L = p * q / gcd(p, q); const d = R.nz(-5, 5), e = R.nz(-5, 5); const A = L / p, B = L / q; if (A * e - B * d === 0 || A === Math.abs(d)) return null; return SYS(sysH(`{x/${p}}+{y/${q}}=${c}`, eqs(d, e, d * x + e * y)), x, y, `①に $${L}$ をかける：$${ps(PL([[A, 'x'], [B, 'y']]))}=${c * L}$<br>` + solveSol(A, B, c * L, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, solveSol(a, b, a * x + b * y, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-4, 4), b = R.nz(-4, 4), d = R.nz(-4, 4), e = R.nz(-4, 4); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d)) return null; const c1 = a * x + b * y, c2 = d * x + e * y; return SYS(`$${ps(PL([[a, 'x'], [b, 'y']]))}=${ps(PL([[d, 'x'], [e, 'y'], [c1 - c2, '']]))}=${c1}$`, x, y, `$A=B=C$ は $A=C$，$B=C$ の連立に直す<br>` + solveSol(a, b, c1, d, e, c2, x, y)); }),
+    (R) => genSys(R, (x, y) => { const p = R.pick([2, 3, 4]); if ((x + y) % p) return null; const c = (x + y) / p; const a = dec(R, 0.1, 0.9, 1), b = dec(R, 0.1, 0.9, 1); if (a.d === 1 || b.d === 1) return null; const A = a.n * 10 / a.d, B = b.n * 10 / b.d; if (A === B) return null; const r = a.mul(fr(x)).sub(b.mul(fr(y))); return SYS(sysH(`{x+y/${p}}=${c}`, `${fmt(a, 'd')}x-${fmt(b, 'd')}y=${fmt(r, 'd')}`), x, y, `①×$${p}$：$x+y=${x + y}$，②×10：$${ps(PL([[A, 'x'], [-B, 'y']]))}=${F.fmt(r.mul(fr(10)))}$<br>` + solveSol(1, 1, x + y, A, -B, r.mul(fr(10)).valueOf(), x, y)); }),
+    (R) => genSys(R, (x, y) => { const m = R.nz(-3, 3), c = y - m * x; const d = R.pick([2, 3]), e = R.pick([2, 4, 5]); if (x % d || y % e || d === e || m * d === e) return null; const v = x / d - y / e; return SYS(sysH(`y=${ps(lin(m, 'x', c))}`, `{x/${d}}-{y/${e}}=${v}`), x, y, `②に $${d * e / gcd(d, e)}$ をかけてから、①を代入する<br>$x=${x}$，$y=${y}$`); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; return SYS(sysH(eqs(a, b, a * x + b * y), eqs(d, e, d * x + e * y)), x, y, solveSol(a, b, a * x + b * y, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const k = R.int(2, 4), p1 = R.nz(-4, 4), q1 = R.nz(-4, 4), r = R.nz(-6, 6); const a = k * p1, b = k * q1 - r; const d = R.nz(-5, 5), e = R.nz(-5, 5); if (a * e - b * d === 0 || b === 0 || Math.abs(a) === Math.abs(d)) return null; const c = a * x + b * y; return SYS(sysH(`${kpar(k, PL([[p1, 'x'], [q1, 'y']]))}=${ps(PL([[r, 'y'], [c, '']]))}`, eqs(d, e, d * x + e * y)), x, y, `①を整理して $${ps(PL([[a, 'x'], [b, 'y']]))}=${c}$<br>` + solveSol(a, b, c, d, e, d * x + e * y, x, y)); }),
+    (R) => genSys(R, (x, y) => { const a = R.nz(-6, 6), b = R.nz(-6, 6), d = R.nz(-6, 6), e = R.nz(-6, 6); if (a * e - b * d === 0 || Math.abs(a) === Math.abs(d) || Math.abs(b) === Math.abs(e)) return null; const c = a * x + b * y, f = d * x + e * y; return SYS(sysH(`${ps(PL([[a, 'x'], [-c, '']]))}=${ps(PL([[-b, 'y']]))}`, `${ps(PL([[e, 'y']]))}=${ps(PL([[-d, 'x'], [f, '']]))}`), x, y, `どちらも $ax+by=c$ の形に直す<br>` + solveSol(a, b, c, d, e, f, x, y)); }),
+  ] });
+
+  /* ===== 5級 単項式・多項式の乗除と展開 ===== */
+  const L2 = (R, x) => lin(R.nz(-5, 5), x, R.nz(-9, 9));
+  add({ id: 'kk5', kyu: 5, title: '多項式の乗除と展開', area: '中3', basic: [
+    (R) => R.retry(() => { const x = R.pick(['x', 'a']); const k = mono(R.nz(-6, 6), { [x]: 1 }); const p = lin(R.nz(-6, 6), x, R.nz(-9, 9)); return ALG(`${mstr(k)}(${ps(p)})`, k.mul(p)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const m = mono(R.nz(-5, 5), { [x]: 1 }); const p = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y]]); return ALG(`(${ps(p)})*${mpar(m)}`, p.mul(m)); }),
+    (R) => R.retry(() => { const x = R.pick(['x', 'a']); const k = mono(R.nz(-4, 4), { [x]: 1 }); const qt = PL([[R.nz(-5, 5), `${x}`], [R.nz(-9, 9), '']]); const p = qt.mul(k); return ALG(`(${ps(p)})÷${mpar(k)}`, qt); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = mono(R.nz(-4, 4), { [x]: 1 }); const qt = PL([[R.nz(-5, 5), `${x}`], [R.nz(-5, 5), y]]); const p = qt.mul(k); return ALG(`(${ps(p)})÷${mpar(k)}`, qt); }),
+    (R) => R.retry(() => { const x = 'x'; const p = lin(1, x, R.nz(-9, 9)), q = lin(1, x, R.nz(-9, 9)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[1, x], [R.nz(-5, 5), '']]), q = PL([[1, y], [R.nz(-5, 5), '']]); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const p = lin(R.nz(-5, 5), 'x', R.nz(-6, 6)), q = lin(1, 'x', R.nz(-6, 6)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const p = lin(R.nz(-5, 5), 'x', R.nz(-6, 6)), q = lin(R.nz(-5, 5), 'x', R.nz(-6, 6)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[R.nz(-4, 4), x], [R.nz(-4, 4), y]]), q = PL([[R.nz(-4, 4), x], [R.nz(-4, 4), y]]); const res = p.mul(q); if (res.t.size < 2) return null; return ALG(`(${ps(p)})(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[1, x], [R.nz(-3, 3), '']]), q = PL([[1, x], [R.nz(-3, 3), y], [R.nz(-5, 5), '']]); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+  ], adv: [
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = mono(frac(R, 4).mul(fr(R.sign())), { [x]: 1 }); const p = PL([[R.nz(-3, 3) * 4, x], [R.nz(-3, 3) * 4, y]]); const res = k.mul(p); if ([...res.t.values()].some(c => c.d !== 1)) return null; return ALG(`${mstr(k)}(${ps(p)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = mono(frac(R, 4).mul(fr(R.sign())), { [x]: 1 }); const qt = PL([[R.nz(-5, 5), `${x}^2`], [R.nz(-5, 5), `${x}${y}`], [R.nz(-5, 5), '']]); const p = qt.mul(k); return ALG(`(${ps(p)})÷(${mstr(k)})`, qt); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = mono(R.nz(-4, 4), { [x]: 1, [y]: 1 }); const qt = PL([[R.nz(-5, 5), x], [R.nz(-5, 5), y], [R.nz(-5, 5), '']]); const p = qt.mul(k); return ALG(`(${ps(p)})÷${mpar(k)}`, qt); }),
+    (R) => R.retry(() => { const a = frac(R, 4), b = R.nz(-6, 6); const p = PL([[1, 'x'], [a, '']]), q = lin(1, 'x', b); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[R.nz(-4, 4), x], [R.nz(-4, 4), y]]), q = PL([[R.nz(-4, 4), x], [R.nz(-4, 4), y], [R.nz(-5, 5), '']]); const res = p.mul(q); if (res.t.size < 3) return null; return ALG(`(${ps(p)})(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const p = PL([[frac(R, 3), 'x'], [R.nz(-5, 5), '']]), q = lin(R.nz(-4, 4) * 3, 'x', R.nz(-6, 6)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[1, x], [R.nz(-3, 3), y], [R.nz(-4, 4), '']]), q = PL([[R.nz(-3, 3), x], [R.nz(-3, 3), y]]); const res = p.mul(q); return ALG(`(${ps(p)})(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const k = mono(R.nz(-3, 3), { x: 1 }); const p = lin(R.nz(-3, 3), 'x', R.nz(-5, 5)), q = lin(1, 'x', R.nz(-5, 5)); const res = k.mul(p).add(p.mul(q)); return ALG(`${mstr(k)}(${ps(p)})+(${ps(p)})(${ps(q)})`, res); }),
+    (R) => R.retry(() => { const p = lin(1, 'x', R.nz(-6, 6)), q = lin(1, 'x', R.nz(-6, 6)), r = lin(1, 'x', R.nz(-6, 6)), s = lin(1, 'x', R.nz(-6, 6)); const res = p.mul(q).sub(r.mul(s)); if (res.t.size < 1) return null; return ALG(`(${ps(p)})(${ps(q)})-(${ps(r)})(${ps(s)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[R.nz(-3, 3), x], [R.nz(-3, 3), y], [R.nz(-3, 3), '']]), q = PL([[R.nz(-3, 3), x], [R.nz(-3, 3), y], [R.nz(-3, 3), '']]); const res = p.mul(q); if (res.t.size < 4) return null; return ALG(`(${ps(p)})(${ps(q)})`, res); }),
+  ] });
+
+  /* ===== 4級 乗法公式 ===== */
+  const xa = (R, k = 9) => lin(1, 'x', R.nz(-k, k));
+  add({ id: 'kk4', kyu: 4, title: '乗法公式', area: '中3', basic: [
+    (R) => R.retry(() => { const p = xa(R), q = xa(R); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[1, x], [R.nz(-6, 6), y]]), q = PL([[1, x], [R.nz(-6, 6), y]]); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const p = xa(R); return ALG(`(${ps(p)})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const p = lin(R.nz(-5, 5), 'x', R.nz(-6, 6)); if (Math.abs([...p.t.values()][0].n) < 2) return null; return ALG(`(${ps(p)})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const a = R.int(1, 9); const p = lin(1, 'x', a), q = lin(1, 'x', -a); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(2, 5), b = R.int(1, 5); const p = PL([[a, x], [b, y]]), q = PL([[a, x], [-b, y]]); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const p = PL([[R.nz(-4, 4), x], [R.nz(-4, 4), y]]); return ALG(`(${ps(p)})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const k = R.int(2, 5); const p = lin(k, 'x', R.nz(-6, 6)), q = lin(k, 'x', R.nz(-6, 6)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const p = xa(R, 6), q = xa(R, 6), r = lin(1, 'x', 0); const a = R.nz(-5, 5); const res = p.mul(q).sub(PL([[1, 'x^2']])).add(PL([[a, 'x']])).add(PL([[1, 'x^2']])); void r; return ALG(`(${ps(p)})(${ps(q)})${a < 0 ? '' : '+'}${coefS(a, 'x')}`, res); }),
+    (R) => R.retry(() => { const p = xa(R, 6), q = xa(R, 6); const res = p.mul(q).sub(Poly.of('x^2')); if (res.t.size < 1) return null; return ALG(`(${ps(p)})(${ps(q)})-x^2`, res); }),
+  ], adv: [
+    (R) => R.retry(() => { const p = PL([[1, 'x'], [frac(R, 4).mul(fr(R.sign())), '']]); return ALG(`(${ps(p)})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const a = frac(R, 5); const p = PL([[1, 'x'], [a, '']]), q = PL([[1, 'x'], [a.neg(), '']]); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q)); }),
+    (R) => R.retry(() => { const p = xa(R, 6), q = xa(R, 6), r = xa(R, 6); const res = p.mul(p).add(q.mul(r)); return ALG(`(${ps(p)})^2+(${ps(q)})(${ps(r)})`, res); }),
+    (R) => R.retry(() => { const p = xa(R, 6), q = xa(R, 6), r = xa(R, 6); const res = p.mul(q).sub(r.mul(r)); if (res.t.size < 1) return null; return ALG(`(${ps(p)})(${ps(q)})-(${ps(r)})^2`, res); }),
+    (R) => R.retry(() => { const a = R.int(1, 6); const p = lin(1, 'x', a), q = lin(1, 'x', -a), r = xa(R, 6); const res = p.mul(q).sub(r.mul(r)); if (res.t.size < 1) return null; return ALG(`(${ps(p)})(${ps(q)})-(${ps(r)})^2`, res); }),
+    (R) => R.retry(() => { const k = R.int(2, 4), a = R.nz(-5, 5), b = R.int(1, 5); const p = lin(k, 'x', a), q = lin(k, 'x', b), r = lin(k, 'x', -b); const res = p.mul(p).sub(q.mul(r)); return ALG(`(${ps(p)})^2-(${ps(q)})(${ps(r)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const b = R.nz(-4, 4), c = R.nz(-4, 4), d = R.nz(-4, 4); const p = PL([[1, x], [b, y]]), q = PL([[1, x], [c, y]]), r = PL([[1, x], [d, y]]); const res = p.mul(p).sub(q.mul(r)); if (res.t.size < 2) return null; return ALG(`(${ps(p)})^2-(${ps(q)})(${ps(r)})`, res); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.nz(-5, 5), b = R.nz(-5, 5); const A = PL([[1, x], [b, y]]); const p = A.add(Poly.c(a)), q = A.add(Poly.c(-a)); return ALG(`(${ps(p)})(${ps(q)})`, p.mul(q), `${x}${b < 0 ? '' : '+'}${coefS(b, y)}=M \\ とおくと \\ (M${sgnk(a)})(M${sgnk(-a)})=M^2-${a * a}`.replace(/\\ /g, '　') && null); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const s = R.nz(-5, 5); const p = PL([[1, x], [1, y], [s, '']]); return ALG(`(${ps(p)})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const k = R.int(2, 4); const p = lin(k, 'x', R.nz(-5, 5)), q = lin(k, 'x', R.nz(-5, 5)), r = lin(R.nz(-3, 3), 'x', R.nz(-5, 5)); const res = p.mul(q).sub(r.mul(r)); if (res.t.size < 1) return null; return ALG(`(${ps(p)})(${ps(q)})-(${ps(r)})^2`, res); }),
+  ] });
+
+  /* ===== 3級 因数分解 ===== */
+  const FA = (q, a, sol) => ({ q: `$${q}$`, a: `$${a}$`, sol: sol ? (/[ぁ-んァ-ヶ一-龥]/.test(sol) ? sol : `$${sol}$`) : '' });
+  const fx = (a) => ps(lin(1, 'x', a));
+  const fpair = (R, x = 'x') => R.retry(() => { const a = R.nz(-9, 9), b = R.nz(-9, 9); if (a + b === 0 && R.chance(0.7)) return null; if (a > b) return null; return [a, b]; });
+  const fpStr = (a, b, x = 'x') => (a === b ? `(${ps(lin(1, x, a))})^2` : `(${ps(lin(1, x, a))})(${ps(lin(1, x, b))})`);
+  add({ id: 'kk3', kyu: 3, title: '因数分解', area: '中3', ins: '次の式を因数分解しなさい。', basic: [
+    (R) => R.retry(() => { const [x, y] = vv(R); const k = R.int(2, 6); const a = R.nz(-5, 5), b = R.nz(-5, 5); if (gcd(a, b) !== 1) return null; const p = PL([[a * k, x], [b * k, y]]); return FA(ps(p), `${k}(${ps(PL([[a, x], [b, y]]))})`); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(1, 5), b = R.nz(-5, 5); const p = PL([[a, `${x}^2`], [b, `${x}${y}`]]); if (gcd(a, b) !== 1) return null; return FA(ps(p), `${x}(${ps(PL([[a, x], [b, y]]))})`); }),
+    (R) => R.retry(() => { const [a, b] = fpair(R); if (a === b) return null; const p = lin(1, 'x', a).mul(lin(1, 'x', b)); return FA(ps(p), fpStr(a, b), `和が $${a + b}$、積が $${a * b}$ の2数は $${a}$ と $${b}$`); }),
+    (R) => R.retry(() => { const a = R.int(1, 9); const p = lin(1, 'x', a).mul(lin(1, 'x', a)); return FA(ps(p), fpStr(a, a)); }),
+    (R) => R.retry(() => { const a = -R.int(1, 9); const p = lin(1, 'x', a).mul(lin(1, 'x', a)); return FA(ps(p), fpStr(a, a)); }),
+    (R) => R.retry(() => { const a = R.int(1, 12); return FA(`x^2-${a * a}`, `(x+${a})(x-${a})`); }),
+    (R) => R.retry(() => { const [a, b] = fpair(R); if (a === b) return null; const p = lin(1, 'x', a).mul(lin(1, 'x', b)); return FA(ps(p), fpStr(a, b)); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(1, 6), b = R.int(1, 6); if (gcd(a, b) !== 1 || a === b && a === 1) return null; return FA(`${coefS(a * a, `${x}^2`)}-${coefS(b * b, `${y}^2`)}`, `(${ps(PL([[a, x], [b, y]]))})(${ps(PL([[a, x], [-b, y]]))})`); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(1, 5), b = R.nz(-5, 5); if (a === 1 && Math.abs(b) === 1) return null; const p = PL([[a, x], [b, y]]); return FA(ps(p.mul(p)), `(${ps(p)})^2`); }),
+    (R) => R.retry(() => { const [a, b] = fpair(R); if (a === b) return null; const [x, y] = vv(R); const p = PL([[1, x], [a, y]]).mul(PL([[1, x], [b, y]])); return FA(ps(p), `(${ps(PL([[1, x], [a, y]]))})(${ps(PL([[1, x], [b, y]]))})`); }),
+  ], adv: [
+    (R) => R.retry(() => { const k = R.int(2, 5); const [a, b] = fpair(R, 'x'); if (a === b) return null; const p = lin(1, 'x', a).mul(lin(1, 'x', b)).scale(k); return FA(ps(p), `${k}${fpStr(a, b)}`, `まず共通な因数 $${k}$ をくくり出す`); }),
+    (R) => R.retry(() => { const k = R.int(2, 5); const a = R.int(1, 9); return FA(ps(PL([[k, 'x^2'], [-k * a * a, '']])), `${k}(x+${a})(x-${a})`); }),
+    (R) => R.retry(() => { const [x] = ['a']; const k = R.int(2, 4); const [a, b] = fpair(R); const p = lin(1, 'x', a).mul(lin(1, 'x', b)).mul(Poly.of('a', k)); return FA(ps(p), `${k}a${fpStr(a, b)}`); }),
+    (R) => R.retry(() => { const [a, b] = fpair(R); if (a === b) return null; const c = R.nz(-5, 5); // (x+c)^2 + s(x+c) + t → M=x+c
+      const M = lin(1, 'x', c); const p = M.mul(M).add(M.scale(a + b)).add(Poly.c(a * b)); const f1 = c + a, f2 = c + b; const res = f1 === f2 ? `(${fx(f1)})^2` : (f1 === 0 ? `x(${fx(f2)})` : f2 === 0 ? `x(${fx(f1)})` : `(${fx(f1)})(${fx(f2)})`); return FA(`(${ps(M)})^2${sgnk(a + b) === '+0' ? '' : `${a + b < 0 ? '-' : '+'}${Math.abs(a + b) === 1 ? '' : Math.abs(a + b)}(${ps(M)})`}${sgnk(a * b)}`, res, `${ps(M)}=M 　とおく`.replace(/^/, '') && null); }),
+    (R) => R.retry(() => { const a = R.int(1, 6), c = R.nz(-6, 6); const M = lin(1, 'x', c); return FA(`(${ps(M)})^2-${a * a}`, `(${fx(c + a)})(${fx(c - a)})`.replace(/\(x\)/g, 'x')); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(1, 5), b = R.int(1, 5); const k = R.int(2, 3); if (gcd(a, b) !== 1) return null; return FA(`${coefS(k * a * a, `${x}^2`)}-${coefS(k * b * b, `${y}^2`)}`, `${k}(${ps(PL([[a, x], [b, y]]))})(${ps(PL([[a, x], [-b, y]]))})`); }),
+    (R) => R.retry(() => { const [a, b] = fpair(R); if (a === b) return null; const p = lin(1, 'x', a).mul(lin(1, 'x', b)); const q = lin(1, 'x', R.nz(-5, 5)).mul(lin(1, 'x', R.nz(-5, 5))); const diff = p.sub(q); void diff; return FA(ps(p), fpStr(a, b)); }),
+    (R) => R.retry(() => { const a = R.nz(-6, 6), b = R.nz(-6, 6); if (a === b) return null; // (x+a)(x+b) を展開した形の差: x(x+p)+q
+      const p = lin(1, 'x', a).mul(lin(1, 'x', b)); const s = a + b, t = a * b; return FA(`x(x${sgnk(s)})${sgnk(t)}`.replace('+0)', ')').replace(/\(x\)/, 'x'), fpStr(Math.min(a, b), Math.max(a, b)), `展開すると $${ps(p)}$`); }),
+    (R) => R.retry(() => { const [x, y] = vv(R); const a = R.int(1, 5); const k = R.int(2, 4); return FA(`${coefS(k, `${x}^2${y}`)}-${coefS(k * a * a, y)}`, `${k}${y}(${x}+${a})(${x}-${a})`); }),
+    (R) => R.retry(() => { const a = R.nz(-5, 5), b = R.nz(-5, 5), c = R.nz(-4, 4); if (a === b) return null; const M = lin(1, 'x', c); const p = M.mul(M).sub(PL([[a + b, 'x']])).add(Poly.c(a * b - c * (a + b))); // そのまま展開して因数分解
+      const sum = 2 * c - (a + b), prod = c * c - c * (a + b) + a * b; const roots = []; for (let u = -30; u <= 30; u++) for (let v = u; v <= 30; v++) if (u + v === sum && u * v === prod) roots.push([u, v]); if (!roots.length) return null; const [u, v] = roots[0]; return FA(`(${ps(M)})^2-${Math.abs(a + b) === 1 ? '' : Math.abs(a + b)}x`.replace('-x', a + b < 0 ? '+x' : '-x').replace(/-(\d+)x$/, (m0, n) => (a + b < 0 ? '+' : '-') + n + 'x') + sgnk(a * b - c * (a + b)), fpStr(u, v), `展開して整理すると $${ps(p)}$`); }),
+  ] });
+
+  /* ===== 2級 平方根の計算 ===== */
+  /** a√b の和（根号の中ごとの係数） */
+  class Rt {
+    constructor(m) { this.m = new Map(); if (m) for (const [k, v] of m) if (!F.of(v).n === false || F.of(v).n !== 0) this.m.set(k, F.of(v)); }
+    static of(c, r = 1) { const [o, i] = simpSqrt(r); return new Rt([[i, F.of(c).mul(fr(o))]]); }
+    add(o) { const m = new Map(this.m); for (const [k, v] of o.m) m.set(k, (m.get(k) || fr(0)).add(v)); return new Rt([...m].filter(([, v]) => v.n !== 0)); }
+    neg() { return new Rt([...this.m].map(([k, v]) => [k, v.neg()])); }
+    sub(o) { return this.add(o.neg()); }
+    mul(o) { let r = new Rt(); for (const [k1, v1] of this.m) for (const [k2, v2] of o.m) r = r.add(Rt.of(v1.mul(v2), k1 * k2)); return r; }
+    div(o) { if (o.m.size !== 1) throw new Error('Rt.div'); const [[k, v]] = [...o.m]; return this.mul(Rt.of(fr(1).div(v.mul(fr(k))), k)); }
+    str() { const ks = [...this.m.keys()].sort((a, b) => (a === 1 ? -1 : b === 1 ? 1 : a - b)); if (!ks.length) return '0'; return ks.map((k, i) => { const v = this.m.get(k); const neg = v.n < 0; const av = v.abs(); let s = k === 1 ? F.fmt(av) : av.d === 1 ? `${av.n === 1 ? '' : av.n}√{${k}}` : `{${av.n === 1 ? '' : av.n}√{${k}}/${av.d}}`; return (neg ? '-' : i ? '+' : '') + s; }).join(''); }
+  }
+  const sq = (c, r) => (r === 1 ? String(c) : `${c === 1 ? '' : c === -1 ? '-' : c}√{${r}}`);
+  const RQ = (q, v, sol) => ({ q: `$${q}$`, a: `$${v.str()}$`, sol: sol ? `$${sol}$` : '' });
+  const sf = [2, 3, 5, 6, 7, 10];
+  const sqf = (R) => R.pick(sf);
+  add({ id: 'kk2', kyu: 2, title: '平方根の計算', area: '中3', basic: [
+    (R) => R.retry(() => { const r = sqf(R), a = R.nz(-7, 7), b = R.nz(-7, 7); const v = Rt.of(a, r).add(Rt.of(b, r)); if (!v.m.size) return null; return RQ(`${sq(a, r)}${b < 0 ? '' : '+'}${sq(b, r)}`, v); }),
+    (R) => R.retry(() => { const a = R.pick([2, 3, 5, 6, 7]), b = R.pick([2, 3, 5, 7, 10]); if (a === b) return null; return RQ(`√{${a}}*√{${b}}`, Rt.of(1, a * b)); }),
+    (R) => R.retry(() => { const r = sqf(R), k = R.int(2, 6); return RQ(`√{${r * k * k}}`, Rt.of(1, r * k * k), `=√{${k * k}*${r}}`); }),
+    (R) => R.retry(() => { const r = sqf(R), k = R.int(2, 7); const q = R.nz(-5, 5); return RQ(`√{${r * k * k}}÷√{${r}}`.replace(/÷/, q > 0 ? '÷' : '÷'), Rt.of(k, 1)); }),
+    (R) => R.retry(() => { const a = R.pick([2, 3, 5, 6, 7]), b = R.pick([2, 3, 5, 6]); const p = Rt.of(R.nz(-4, 4), a), q = Rt.of(R.nz(-4, 4), b); const sA = sq([...p.m.values()][0].n, a), sB = sq([...q.m.values()][0].n, b); return RQ(`${sA}*${sB.startsWith('-') ? `(${sB})` : sB}`, p.mul(q)); }),
+    (R) => R.retry(() => { const r = sqf(R), k = R.int(2, 6); return RQ(`{${k}/√{${r}}}`, Rt.of(1, 1).mul(Rt.of(k, 1)).div(Rt.of(1, r)), `={${k}*√{${r}}/√{${r}}*√{${r}}}`); }),
+    (R) => R.retry(() => { const r = sqf(R), j = R.int(2, 4), k = R.int(2, 4), a = R.nz(-4, 4); if (j === k) return null; const v = Rt.of(1, r * j * j).add(Rt.of(a, r * k * k)); if (!v.m.size) return null; return RQ(`√{${r * j * j}}${a < 0 ? '-' : '+'}${Math.abs(a) === 1 ? '' : Math.abs(a)}√{${r * k * k}}`, v, `=${j}√{${r}}${a < 0 ? '-' : '+'}${Math.abs(a * k)}√{${r}}`); }),
+    (R) => R.retry(() => { const r = sqf(R); const a = R.nz(-5, 5); return RQ(`(${sq(a, r)})^2`, Rt.of(a * a * r, 1)); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.nz(-5, 5), b = R.nz(-6, 6); const v = Rt.of(1, r).mul(Rt.of(a, r).add(Rt.of(b, 1))); return RQ(`√{${r}}(${sq(a, r)}${b < 0 ? '' : '+'}${b})`, v); }),
+    (R) => R.retry(() => { const r = sqf(R), k = R.int(2, 6); const s = R.pick([2, 3, 4]); const v = Rt.of(s, r).add(Rt.of(k * r, 1).div(Rt.of(1, r))); return RQ(`${sq(s, r)}+{${k * r}/√{${r}}}`, v); }),
+  ], adv: [
+    (R) => R.retry(() => { const r = sqf(R), j = R.int(2, 4), k = R.int(2, 5), l = R.int(1, 3); if (j === k) return null; const v = Rt.of(1, r * j * j).sub(Rt.of(1, r * k * k)).add(Rt.of(l, r)); if (!v.m.size) return null; return RQ(`√{${r * j * j}}-√{${r * k * k}}+${sq(l, r)}`, v); }),
+    (R) => R.retry(() => { const a = R.pick([2, 3, 5]), b = R.pick([6, 10, 15]), c = R.pick([2, 3, 5]); const v = Rt.of(1, a).mul(Rt.of(1, b)).div(Rt.of(1, c)); return RQ(`√{${a}}*√{${b}}÷√{${c}}`, v); }),
+    (R) => R.retry(() => { const r = sqf(R), k = R.int(2, 5), m = R.int(2, 4); const v = Rt.of(k * r, 1).div(Rt.of(1, r)).sub(Rt.of(1, r * m * m)); if (!v.m.size) return null; return RQ(`{${k * r}/√{${r}}}-√{${r * m * m}}`, v); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.nz(-4, 4), b = R.nz(-5, 5); const p = Rt.of(a, r).add(Rt.of(b, 1)); return RQ(`(${sq(a, r)}${b < 0 ? '' : '+'}${b})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.int(1, 4), b = R.int(1, 7); const p = Rt.of(a, r).add(Rt.of(b, 1)), q = Rt.of(a, r).sub(Rt.of(b, 1)); return RQ(`(${sq(a, r)}+${b})(${sq(a, r)}-${b})`, p.mul(q)); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.nz(-5, 5), b = R.nz(-5, 5); const p = Rt.of(1, r).add(Rt.of(a, 1)), q = Rt.of(1, r).add(Rt.of(b, 1)); return RQ(`(√{${r}}${a < 0 ? '' : '+'}${a})(√{${r}}${b < 0 ? '' : '+'}${b})`, p.mul(q)); }),
+    (R) => R.retry(() => { const a = R.pick([2, 3, 5]), b = R.pick([2, 3, 5, 7]); if (a === b) return null; const p = Rt.of(1, a).add(Rt.of(1, b)); return RQ(`(√{${a}}+√{${b}})^2`, p.mul(p)); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.nz(-3, 3); const p = Rt.of(1, r).add(Rt.of(a, 1)); const k = R.int(2, 6) * r; const v = p.mul(p).sub(Rt.of(k, 1).div(Rt.of(1, r))); return RQ(`(√{${r}}${a < 0 ? '' : '+'}${a})^2-{${k}/√{${r}}}`, v); }),
+    (R) => R.retry(() => { const a = R.pick([2, 3, 6]), b = R.pick([2, 3, 6]); if (a === b) return null; const p = Rt.of(1, a).add(Rt.of(1, b)), q = Rt.of(1, a).sub(Rt.of(1, b)); const s = R.pick([2, 3]); const v = p.mul(q).add(Rt.of(1, s * a).mul(Rt.of(1, s))); return RQ(`(√{${a}}+√{${b}})(√{${a}}-√{${b}})+√{${s * a}}*√{${s}}`, v); }),
+    (R) => R.retry(() => { const r = sqf(R), a = R.int(1, 3), b = R.int(1, 4), c = R.int(1, 3); const p = Rt.of(a, r).add(Rt.of(b, 1)), q = Rt.of(a, r).sub(Rt.of(b, 1)); const t = Rt.of(c, r); const v = p.mul(q).sub(t.mul(t.add(Rt.of(-1, 1)))); return RQ(`(${sq(a, r)}+${b})(${sq(a, r)}-${b})-${sq(c, r)}(${sq(c, r)}-1)`, v); }),
+  ] });
+
+  /* ===== 1級 2次方程式 ===== */
+  const qsol = (a, b, c) => { // ax^2+bx+c=0 の解（解の公式）
+    const D = b * b - 4 * a * c; if (D < 0) return null; if (D === 0) return `x=${F.fmt(fr(-b, 2 * a))}`; const [k, d] = simpSqrt(D); if (d === 1) { const r1 = fr(-b + k, 2 * a), r2 = fr(-b - k, 2 * a); if (r1.eq(r2.neg())) return `x=±${F.fmt(r1.abs())}`; return r1.eq(r2) ? `x=${F.fmt(r1)}` : `x=${[r1, r2].sort((u, v) => u - v).map(F.fmt).join(', ')}`; }
+    let g = gcd(gcd(Math.abs(b), k), Math.abs(2 * a)); let den = 2 * a / g, B = -b / g, K = k / g; if (den < 0) { den = -den; B = -B; }
+    const num = `${B ? B : ''}±${K === 1 ? '' : K}√{${d}}`; return den === 1 ? `x=${num}` : `x={${num}/${den}}`; };
+  const QE = (lhs, rhs, a, b, c, sol) => { const s = qsol(a, b, c); if (!s) return null; return { q: `$${lhs}=${rhs}$`, a: `$${s}$`, sol: sol || '' }; };
+  const roots2 = (R) => R.retry(() => { const p = R.nz(-9, 9), q = R.nz(-9, 9); return p === q ? null : [Math.min(p, q), Math.max(p, q)]; });
+  add({ id: 'kk1', kyu: 1, title: '2次方程式', area: '中3', ins: '次の方程式を解きなさい。', basic: [
+    (R) => R.retry(() => { const k = R.int(1, 12); return QE('x^2', k * k, 1, 0, -k * k, `$x=±${k}$`); }),
+    (R) => R.retry(() => { const r = R.pick([2, 3, 5, 6, 7, 10]), a = R.int(2, 5); return QE(`${a}x^2`, a * r, a, 0, -a * r, `$x^2=${r}$`); }),
+    (R) => R.retry(() => { const m = R.nz(-6, 6), k = R.int(1, 7); return QE(`(${fx(m)})^2`, k * k, 1, 2 * m, m * m - k * k, `$${fx(m)}=±${k}$`); }),
+    (R) => R.retry(() => { const m = R.nz(-6, 6), r = R.pick([2, 3, 5, 6, 7]); return QE(`(${fx(m)})^2`, r, 1, 2 * m, m * m - r, `$${fx(m)}=±√{${r}}$`); }),
+    (R) => R.retry(() => { const [p, q] = roots2(R); const P = lin(1, 'x', -p).mul(lin(1, 'x', -q)); return QE(ps(P), 0, 1, -(p + q), p * q, `$${fpStr(-q, -p)}=0$`); }),
+    (R) => R.retry(() => { const p = R.nz(-9, 9); const P = lin(1, 'x', -p).mul(lin(1, 'x', -p)); return QE(ps(P), 0, 1, -2 * p, p * p, `$(${fx(-p)})^2=0$`); }),
+    (R) => R.retry(() => { const p = R.nz(-9, 9); return QE(ps(PL([[1, 'x^2'], [-p, 'x']])), 0, 1, -p, 0, `$x(${fx(-p)})=0$`); }),
+    (R) => R.retry(() => { const [p, q] = roots2(R); const P = lin(1, 'x', -p).mul(lin(1, 'x', -q)); return QE(ps(P), 0, 1, -(p + q), p * q, `$${fpStr(-q, -p)}=0$`); }),
+    (R) => R.retry(() => { const a = 1, b = R.nz(-9, 9), c = R.nz(-9, 9); const D = b * b - 4 * a * c; if (D <= 0 || Math.sqrt(D) % 1 === 0) return null; return QE(ps(PL([[1, 'x^2'], [b, 'x'], [c, '']])), 0, a, b, c, `解の公式 $x={-b±√{b^2-4ac}/2a}$`); }),
+    (R) => R.retry(() => { const a = R.int(2, 5), b = R.nz(-9, 9), c = R.nz(-6, 6); const D = b * b - 4 * a * c; if (D <= 0) return null; return QE(ps(PL([[a, 'x^2'], [b, 'x'], [c, '']])), 0, a, b, c, `解の公式：$x={${-b}±√{${D}}/${2 * a}}$`); }),
+  ], adv: [
+    (R) => R.retry(() => { const [p, q] = roots2(R); const k = R.int(2, 4); const P = lin(1, 'x', -p).mul(lin(1, 'x', -q)).scale(k); return QE(ps(P), 0, 1, -(p + q), p * q, `両辺を $${k}$ でわる`); }),
+    (R) => R.retry(() => { const [p, q] = roots2(R); const s = -(p + q), t = p * q; const m = R.nz(-5, 5); // x^2+sx = -t を x^2 + (s-m)x = -t - m x の形に
+      return QE(`x^2${sgnk(s - m) === '+0' ? '' : `${s - m < 0 ? '-' : '+'}${Math.abs(s - m) === 1 ? '' : Math.abs(s - m)}x`}`, ps(PL([[-m, 'x'], [-t, '']])), 1, s, t, `移項して $${ps(PL([[1, 'x^2'], [s, 'x'], [t, '']]))}=0$`); }),
+    (R) => R.retry(() => { const p = R.nz(-5, 5), q = R.nz(-5, 5); // (x+p)(x+q)=k
+      const k = R.nz(-12, 12); const b = p + q, c = p * q - k; return QE(`(${fx(p)})(${fx(q)})`, k, 1, b, c, `展開して整理：$${ps(PL([[1, 'x^2'], [b, 'x'], [c, '']]))}=0$`); }),
+    (R) => R.retry(() => { const a = R.int(2, 4), b = R.nz(-9, 9), c = R.nz(-9, 9); return QE(ps(PL([[a, 'x^2'], [b, 'x'], [c, '']])), 0, a, b, c, `解の公式：$x={${-b}±√{${b * b - 4 * a * c}}/${2 * a}}$`); }),
+    (R) => R.retry(() => { const d = R.int(2, 4); const [p, q] = roots2(R); const s = -(p + q), t = p * q; const cs = fr(Math.abs(s), d); return QE(`{1/${d}}x^2${s ? `${s < 0 ? '-' : '+'}${cs.eq(1) ? '' : F.fmt(cs)}x` : ''}`, `${F.fmt(fr(-t, d))}`, 1, s, t, `両辺に $${d}$ をかける`); }),
+    (R) => R.retry(() => { const m = R.nz(-5, 5), r = R.pick([3, 5, 8, 12, 18]); return QE(`(x${sgnk(m)})^2-${r}`, 0, 1, 2 * m, m * m - r, `$(x${sgnk(m)})^2=${r}$`); }),
+    (R) => R.retry(() => { const a = R.nz(-4, 4), b = R.nz(-6, 6); // 2(x+a)^2 = ...  → (x+a)^2 = b^2
+      const k = R.int(2, 3); return QE(`${k}(${fx(a)})^2`, k * b * b, 1, 2 * a, a * a - b * b, `$(${fx(a)})^2=${b * b}$`); }),
+    (R) => R.retry(() => { const p = R.nz(-6, 6), q = R.nz(-6, 6); const b = p + q, c = p * q; const k = R.nz(-4, 4); return QE(`x(x${sgnk(b - k)})`, ps(PL([[-k, 'x'], [-c, '']])), 1, b, c, `展開・移項して $${ps(PL([[1, 'x^2'], [b, 'x'], [c, '']]))}=0$`); }),
+    (R) => R.retry(() => { const a = R.int(1, 3), b = R.nz(-7, 7), c = R.nz(-7, 7); const D = b * b - 4 * a * c; if (D <= 0) return null; return QE(ps(PL([[a, 'x^2'], [b, 'x']])), -c, a, b, c, `移項して $${ps(PL([[a, 'x^2'], [b, 'x'], [c, '']]))}=0$`); }),
+    (R) => R.retry(() => { const p = R.nz(-5, 5), q = R.nz(-5, 5); const m = R.nz(-4, 4); // (x+m)^2 + s(x+m) + t = 0 → M=x+m
+      const s = -(p + q), t = p * q; const b = 2 * m + s, c = m * m + s * m + t; return QE(`(${fx(m)})^2${s ? `${s < 0 ? '-' : '+'}${Math.abs(s) === 1 ? '' : Math.abs(s)}(${fx(m)})` : ''}${sgnk(t)}`, 0, 1, b, c, `$${fx(m)}=M$ とおくと $(M${sgnk(-p)})(M${sgnk(-q)})=0$`); }),
+  ] });
+
+  /* ===== 入試実戦トレーニング（20問・各5点）: 各級の問題からえらぶ ===== */
+  const pick = (ids, part) => ids.map(id => { const k = U.kyu.find(x => x.id === id); return part === 'b' ? k.basic : part === 'a' ? k.adv : k.basic.concat(k.adv); }).flat();
+  const train = (no, title, pools) => add({ id: 'kkt' + no, kyu: 0, train: no, title: `入試実戦トレーニング${no}　${title}`, area: '入試実戦トレーニング', n: 20, pools });
+  train(1, '数の計算①', [[['kk11', 'kk13', 'kk12'], 'b', 10], [['kk11', 'kk12', 'kk13'], 'a', 10]]);
+  train(2, '式の計算①', [[['kk9', 'kk7'], 'b', 10], [['kk9', 'kk7'], 'a', 10]]);
+  train(3, '方程式①（1次方程式・比例式）', [[['kk8'], 'b', 10], [['kk8'], 'a', 10]]);
+  train(4, '方程式②（連立方程式）', [[['kk6'], 'b', 6], [['kk6'], 'a', 4]]);
+  train(5, '数の計算②（正負と平方根）', [[['kk11', 'kk12'], 'a', 8], [['kk2'], 'b', 12]]);
+  train(6, '数の計算③（平方根）', [[['kk2'], 'b', 10], [['kk2'], 'a', 10]]);
+  train(7, '数の計算④（平方根の展開）', [[['kk2'], 'a', 20]]);
+  train(8, '式の計算②（単項式・多項式）', [[['kk7'], 'a', 10], [['kk5'], 'b', 10]]);
+  train(9, '式の計算③（展開）', [[['kk5'], 'a', 8], [['kk4'], 'b', 6], [['kk4'], 'a', 6]]);
+  train(10, '式の計算④（因数分解）', [[['kk3'], 'b', 10], [['kk3'], 'a', 10]]);
+  train(11, '方程式③（2次方程式）', [[['kk1'], 'b', 10], [['kk1'], 'a', 10]]);
+  U.kyuPools = (k) => (k.pools || []).map(([ids, part, n]) => ({ fns: pick(ids, part), n, ins: (U.kyu.find(x => x.id === ids[0]) || {}).ins }));
+  // 実戦トレーニングでは、問題の指示文（計算・方程式・因数分解）を問題ごとに合わせる
+  U.kyuOf = (fn) => U.kyu.find(k => k.basic && (k.basic.includes(fn) || k.adv.includes(fn)));
+})();
+
+</script>
+<script>
 /* 入試数学 大問ジェネレーター（ユーザー作成のエンジンを統合） — 生成部分はもとのまま。
    window.NYUSHI から使う。DOM には触らない。 */
 (function () {
@@ -46567,7 +47329,7 @@ class Svg {
   circle(x, y, r, o = {}) { return this.add(`<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" ${st(Object.assign({ fill: 'none' }, o))}/>`); }
   dot(x, y, r = 2.6) { return this.add(`<circle cx="${f(x)}" cy="${f(y)}" r="${r}" class="dot"/>`); }
   path(d, o = {}) { return this.add(`<path d="${d}" ${st(Object.assign({ fill: 'none' }, o))}/>`); }
-  text(x, y, s, o = {}) { const a = o.anchor || 'middle'; const sz = o.size ? `font-size="${o.size}"` : ''; const cl = o.italic ? 'class="it"' : ''; return this.add(`<text x="${f(x)}" y="${f(y)}" text-anchor="${a}" dominant-baseline="middle" ${sz} ${cl}>${s}</text>`); }
+  text(x, y, s, o = {}) { { const sz0 = o.size || 13, raw = String(s).replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/g, 'x'); const w = [...raw].reduce((n, ch) => n + (/[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? sz0 : sz0 * 0.6), 0); const a0 = o.anchor || 'middle'; const l = a0 === 'start' ? x : a0 === 'end' ? x - w : x - w / 2; const e = this._ext || (this._ext = [0, 0, -1e9, -1e9]); e[0] = Math.min(e[0], l); e[2] = Math.max(e[2], l + w); e[1] = Math.min(e[1], y - sz0 * 0.6); e[3] = Math.max(e[3], y + sz0 * 0.6); } const a = o.anchor || 'middle'; const sz = o.size ? `font-size="${o.size}"` : ''; const cl = o.italic ? 'class="it"' : ''; return this.add(`<text x="${f(x)}" y="${f(y)}" text-anchor="${a}" dominant-baseline="middle" ${sz} ${cl}>${s}</text>`); }
   rect(x, y, w, h, o = {}) { return this.add(`<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" ${st(Object.assign({ fill: 'none' }, o))}/>`); }
   // 点のラベル: 中心から外向きに
   label(p, s, center, d = 13, o = {}) { let dx = p[0] - center[0], dy = p[1] - center[1]; const L = Math.hypot(dx, dy) || 1; return this.text(p[0] + dx / L * d, p[1] + dy / L * d, s, o); }
@@ -46576,7 +47338,7 @@ class Svg {
   // 角の弧
   arc(p, a, b, r = 16, o = {}) { const t1 = Math.atan2(a[1] - p[1], a[0] - p[0]), t2 = Math.atan2(b[1] - p[1], b[0] - p[0]); let d = t2 - t1; while (d <= -Math.PI) d += 2 * Math.PI; while (d > Math.PI) d -= 2 * Math.PI; const sw = d > 0 ? 1 : 0; const e = [p[0] + r * Math.cos(t2), p[1] + r * Math.sin(t2)], s = [p[0] + r * Math.cos(t1), p[1] + r * Math.sin(t1)]; return this.path(`M${f(s[0])},${f(s[1])} A${r},${r} 0 0 ${sw} ${f(e[0])},${f(e[1])}`, o); }
   arcLabel(p, a, b, r, s, it = false) { const t1 = Math.atan2(a[1] - p[1], a[0] - p[0]); let t2 = Math.atan2(b[1] - p[1], b[0] - p[0]); let d = t2 - t1; while (d <= -Math.PI) d += 2 * Math.PI; while (d > Math.PI) d -= 2 * Math.PI; const t = t1 + d / 2; return this.text(p[0] + r * Math.cos(t), p[1] + r * Math.sin(t), s, { size: it ? 14 : 12, italic: it }); }
-  toString() { return `<svg class="fig ${this.cls}" viewBox="0 0 ${this.w} ${this.h}" width="${this.w}" style="max-width:100%;height:auto">${this.el.join('')}</svg>`; }
+  toString() { /* 図のふちからはみ出す文字（目もりの数・名前）があれば、その分だけ図のわくを広げる */ const e = this._ext || [0, 0, -1e9, -1e9]; const L = Math.min(0, Math.floor(e[0] - 2)), T = Math.min(0, Math.floor(e[1] - 1)), Rr = Math.max(0, Math.ceil(e[2] + 2 - this.w)), B = Math.max(0, Math.ceil(e[3] + 1 - this.h)); const w = this.w - L + Rr, h = this.h - T + B; return `<svg class="fig ${this.cls}" viewBox="${L} ${T} ${w} ${h}" width="${w}" style="max-width:100%;height:auto">${this.el.join('')}</svg>`; }
 }
 function f(x) { return Math.round(x * 10) / 10; }
 function st(o) { let s = ''; if (o.dash) s += ` stroke-dasharray="${o.dash === true ? '4 3' : o.dash}"`; if (o.fill) s += ` fill="${o.fill}"`; if (o.w) s += ` stroke-width="${o.w}"`; if (o.cls) s += ` class="${o.cls}"`; if (o.stroke) s += ` stroke="${o.stroke}"`; return s; }
@@ -63273,9 +64035,51 @@ reg('s3_shiki_atai', '式の値（因数分解・展開してから代入）', 3
 </script>
 <script>
 /* ui.js — 画面（単元選択・設定・プレビュー・印刷） */
+/* 図の文字の自動調整: 図(SVG)の中で、文字どうしが重なる・線や点が文字の上を通るときに、その文字を少しだけ（文字の高さくらいまで）ずらす。
+   乱数で形が変わる図でも、印刷前に毎回ここで整える。数・答えは変えず、文字の位置だけ。 */
+window.figDeclutter = function (root) {
+  const svgs = (root || document).querySelectorAll('section.sheet svg');
+  const dark = (e) => { const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || cs.stroke === 'none') return false; const w = parseFloat(cs.strokeWidth) || 1; const op = (parseFloat(cs.strokeOpacity) || 1) * (parseFloat(cs.opacity) || 1); if (w < 0.7 || op < 0.5) return false; const m = cs.stroke.match(/\d+(\.\d+)?/g); if (m && m.length >= 3 && +m[0] > 165 && +m[1] > 165 && +m[2] > 165) return false; return true; };
+  if (document.fonts && document.fonts.status !== 'loaded' && !window.__declWait) { window.__declWait = true; document.fonts.ready.then(() => { /* 文字の形（フォント）が読みこまれたら、測り直す */ document.querySelectorAll('section.sheet svg[data-decl]').forEach(v => { v.removeAttribute('data-decl'); v.querySelectorAll('text[data-otr]').forEach(t => { const o = t.getAttribute('data-otr'); if (o) t.setAttribute('transform', o); else t.removeAttribute('transform'); t.removeAttribute('data-otr'); }); }); window.__declWait = false; window.figDeclutter(); }); }
+  for (const svg of svgs) {
+    if (svg.dataset.decl) continue;
+    try {
+      const sb = svg.getBoundingClientRect(); if (sb.width < 20 || sb.height < 20) continue; svg.dataset.decl = '1';
+      if (svg.closest('.choice, .chs') && sb.width < 60) continue;
+      const tx = [...svg.querySelectorAll('text')].filter(t => t.textContent.trim() && !t.closest('[data-nodecl]'));
+      if (!tx.length) continue;
+      const items = tx.map(t => { const r = t.getBoundingClientRect(); return { t, l: r.left, r: r.right, t0: r.top, b: r.bottom, w: r.width, h: r.height }; }).filter(o => o.w > 0.5 && o.h > 0.5);
+      if (!items.length) continue;
+      const segs = [], dots = [];
+      const Mx = (el, x, y) => { const m = el.getScreenCTM(); const p = svg.createSVGPoint(); p.x = x; p.y = y; const q = p.matrixTransform(m); return [q.x, q.y]; };
+      svg.querySelectorAll('line').forEach(e => { if (!dark(e)) return; segs.push([...Mx(e, +e.getAttribute('x1'), +e.getAttribute('y1')), ...Mx(e, +e.getAttribute('x2'), +e.getAttribute('y2'))]); });
+      svg.querySelectorAll('polyline,polygon').forEach(e => { if (!dark(e)) return; const v = (e.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number); const P = []; for (let i = 0; i + 1 < v.length; i += 2) P.push(Mx(e, v[i], v[i + 1])); for (let i = 0; i + 1 < P.length; i++) segs.push([...P[i], ...P[i + 1]]); if (e.tagName === 'polygon' && P.length > 2) segs.push([...P[P.length - 1], ...P[0]]); });
+      svg.querySelectorAll('path').forEach(e => { if (!dark(e)) return; const L = e.getTotalLength ? e.getTotalLength() : 0; if (!(L > 0)) return; const n = Math.min(60, Math.max(4, Math.ceil(L / 6))); let pr = null; for (let i = 0; i <= n; i++) { const q = e.getPointAtLength(L * i / n); const c = Mx(e, q.x, q.y); if (pr) segs.push([...pr, ...c]); pr = c; } });
+      svg.querySelectorAll('circle,ellipse').forEach(e => { const cs = getComputedStyle(e); if (cs.display === 'none') return; const r0 = e.tagName === 'circle' ? +e.getAttribute('r') : 0; if (e.tagName === 'circle' && r0 <= 5 && cs.fill !== 'none') { const b = e.getBoundingClientRect(); if (b.width > 0) dots.push({ l: b.left, r: b.right, t0: b.top, b: b.bottom }); return; } if (!dark(e)) return; const cx = +e.getAttribute('cx'), cy = +e.getAttribute('cy'), rx = r0 || +e.getAttribute('rx'), ry = r0 || +e.getAttribute('ry'); let pr = null; for (let i = 0; i <= 48; i++) { const a = i / 48 * 2 * Math.PI; const c = Mx(e, cx + rx * Math.cos(a), cy + ry * Math.sin(a)); if (pr) segs.push([...pr, ...c]); pr = c; } });
+      const ov = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t0, b.t0));
+      const inLen = (x1, y1, x2, y2, r) => { let t0 = 0, t1 = 1; const dx = x2 - x1, dy = y2 - y1; const P = [-dx, dx, -dy, dy], Q = [x1 - r.l, r.r - x1, y1 - r.t0, r.b - y1]; for (let i = 0; i < 4; i++) { if (P[i] === 0) { if (Q[i] < 0) return 0; } else { const t = Q[i] / P[i]; if (P[i] < 0) { if (t > t1) return 0; if (t > t0) t0 = t; } else { if (t < t0) return 0; if (t < t1) t1 = t; } } } return Math.max(0, t1 - t0) * Math.hypot(dx, dy); };
+      const cost = (o, bx, others) => { const core = { l: bx.l + o.w * 0.15, r: bx.r - o.w * 0.15, t0: bx.t0 + o.h * 0.22, b: bx.b - o.h * 0.22 }; let c = 0; for (const q of others) c += ov(bx, q) * 3; for (const d of dots) c += ov(bx, d) * 2; let ln = 0; for (const s of segs) ln += inLen(s[0], s[1], s[2], s[3], core); c += ln * o.h * 0.5; if (bx.l < sb.left - 2 || bx.r > sb.right + 2 || bx.t0 < sb.top - 2 || bx.b > sb.bottom + 2) c += o.w * o.h * 2; return c; };
+      const placed = [];
+      items.forEach((o, i) => {
+        const others = placed.concat(items.slice(i + 1));
+        const base = { l: o.l, r: o.r, t0: o.t0, b: o.b }; const c0 = cost(o, base, others);
+        if (c0 < o.w * o.h * 0.06) { placed.push(base); return; }
+        let best = { c: c0, dx: 0, dy: 0 }; const H = Math.max(o.h, 8);
+        for (const k of [0.3, 0.55, 0.8, 1.05]) for (let a = 0; a < 16; a++) { const ang = a / 16 * 2 * Math.PI; const dx = Math.cos(ang) * H * k, dy = Math.sin(ang) * H * k * 0.9; const bx = { l: o.l + dx, r: o.r + dx, t0: o.t0 + dy, b: o.b + dy }; const c = cost(o, bx, others) + Math.hypot(dx, dy) * o.h * 0.08; if (c < best.c) best = { c, dx, dy }; }
+        if ((best.dx || best.dy) && best.c < c0 * 0.6) {
+          const m = o.t.parentNode.getScreenCTM(); const sx = m ? Math.hypot(m.a, m.b) : 1; const ux = best.dx / sx, uy = best.dy / sx;
+          const tr = o.t.getAttribute('transform') || ''; o.t.setAttribute('data-otr', tr); o.t.setAttribute('transform', `translate(${ux.toFixed(2)} ${uy.toFixed(2)})${tr ? ' ' + tr : ''}`);
+          placed.push({ l: o.l + best.dx, r: o.r + best.dx, t0: o.t0 + best.dy, b: o.b + best.dy });
+        } else placed.push(base);
+      });
+    } catch (e) { /* 図の調整に失敗しても印刷はそのまま */ }
+  }
+};
+
 /* 1枚から少しだけはみ出すページは、少し縮めて1枚におさめる（空に近い2枚目を出さない） */
 window.fitSheets = function (root) {
   const mm = 96 / 25.4, H = 271 * mm;
+  if (window.figDeclutter) window.figDeclutter(root);
   if (root && root.classList && root.classList.contains('editing')) return; // 編集中は道具の分だけ高くなるので、終わってから
   (root || document).querySelectorAll('section.sheet').forEach(sec => {
     const kids = [...sec.children]; kids.forEach(c => { c.style.zoom = ''; c.style.width = ''; }); sec.classList.remove('fitted');
@@ -63291,7 +64095,7 @@ window.fitSheets = function (root) {
   const { U, compose, T, LV_NAME, nyList } = window;
   const $ = (s, el = document) => el.querySelector(s);
   const FIELDS = ['数と式', '関数', '図形', 'データの活用'];
-  const MODES = { ls: { label: 'セット', sub: '1回分・自習', cnt: '演習問題の数', def: 6 }, bk: { label: '分解', sub: '入試を分解', cnt: '類題の数', def: 1 }, ny: { label: '入試', sub: '入試形式の大問', cnt: '大問の数', def: 1 }, sum: { label: 'まとめ', sub: '3年間の総復習', cnt: '確認問題', def: 4 }, why: { label: 'なるほど', sub: 'しくみ・意味', cnt: '', def: 1 }, learn: { label: 'わかる', sub: '説明＋穴うめ', cnt: 'やってみよう', def: 4 }, prac: { label: 'とく', sub: '練習問題', cnt: '問題数', def: 6 }, test: { label: 'テスト', sub: '定期テスト形式', cnt: '出題数', def: 3 } };
+  const MODES = { kk: { label: '計算', sub: '級別ドリル', cnt: '回数', def: 2 }, ls: { label: 'セット', sub: '1回分・自習', cnt: '演習問題の数', def: 6 }, bk: { label: '分解', sub: '入試を分解', cnt: '類題の数', def: 1 }, ny: { label: '入試', sub: '入試形式の大問', cnt: '大問の数', def: 1 }, sum: { label: 'まとめ', sub: '3年間の総復習', cnt: '確認問題', def: 4 }, why: { label: 'なるほど', sub: 'しくみ・意味', cnt: '', def: 1 }, learn: { label: 'わかる', sub: '説明＋穴うめ', cnt: 'やってみよう', def: 4 }, prac: { label: 'とく', sub: '練習問題', cnt: '問題数', def: 6 }, test: { label: 'テスト', sub: '定期テスト形式', cnt: '出題数', def: 3 } };
   const KEY = 'chu-math-print-v1';
   let st = { grade: 1, mode: 'learn', sel: {}, off: {}, maxLv: 2, hint: true, answers: 'sep', seed: newSeed(), open: {}, lsWhy: true };
   try { const sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv) st = Object.assign(st, sv, { seed: newSeed() }); } catch (e) { /* 保存できない環境 */ }
@@ -63302,6 +64106,7 @@ window.fitSheets = function (root) {
   function chaptersOf(g) {
     if (st.mode === 'bk') { const F = ['数と式・方程式', '関数', '平面図形', '空間図形', '確率・データの活用']; return F.map((f, i) => ({ ch: i + 1, title: f, topics: U.bunkai.filter(b => b.field === f && b.grade <= g).sort((a, b) => (a.kc ? 0 : a.miss ? 1 : 2) - (b.kc ? 0 : b.miss ? 1 : 2)) })).filter(c => c.topics.length); }
     if (st.mode === 'ny') return [{ ch: 1, title: `入試形式の大問（中${g}までの範囲）`, topics: nyList(g) }];
+    if (st.mode === 'kk') { const K = U.kyu || []; const T_ = (k) => ({ id: k.id, title: k.train ? k.title.replace('入試実戦トレーニング', '') : `${k.kyu}級　${k.title}` }); return [['小学校の復習（20級〜14級・10級）', k => !k.train && (k.kyu >= 14 || k.kyu === 10)], ['中1（13級〜8級）', k => !k.train && [13, 12, 11, 9, 8].includes(k.kyu)], ['中2（7級・6級）', k => !k.train && [7, 6].includes(k.kyu)], ['中3（5級〜1級）', k => !k.train && k.kyu >= 1 && k.kyu <= 5], ['入試実戦トレーニング（20問・100点）', k => k.train]].map(([title, f], i) => ({ ch: i + 1, title, topics: K.filter(f).map(T_).concat(i === 4 ? [{ id: 'kk-rec', title: '学習記録表（1枚）', kc: true }] : []) })); }
     if (st.mode === 'sum') return FIELDS.map((f, i) => ({ ch: i + 1, title: f, topics: U.themes.filter(th => th.field === f) })).filter(c => c.topics.length);
     const chs = {};
     U.byGrade(g).filter(t => st.mode === 'why' ? !!t.why : st.mode === 'learn' ? (!t.whyOnly && !t.drill) : !t.whyOnly).forEach(t => { (chs[t.ch] = chs[t.ch] || []).push(t); });
@@ -63313,8 +64118,8 @@ window.fitSheets = function (root) {
     let h = '';
     for (const c of chaptersOf(st.grade)) {
       const nSel = c.topics.filter(t => st.sel[t.id] || (t.subs || []).some(u => st.sel[t.id + '#' + u.id])).length;
-      h += `<details class="chap" ${st.open[okey(c.ch)] ? 'open' : ''} data-ch="${c.ch}"><summary><span class="tw">▶</span><span>${st.mode === 'sum' || st.mode === 'ny' || st.mode === 'bk' ? '' : c.ch + '章 '}${c.title}</span><span class="cnt">${nSel ? nSel + (st.mode === 'sum' ? 'テーマ' : st.mode === 'bk' ? '題' : '単元') + 'を選択' : ''}</span></summary>`;
-      h += `<div class="trow"><input type="checkbox" id="all-${st.grade}-${c.ch}" data-all="${c.ch}" ${nSel && c.topics.filter(t => t.id !== 'ny-moshi').every(t => st.sel[t.id]) ? 'checked' : ''}><label for="all-${st.grade}-${c.ch}" style="color:var(--ui-sub);font-size:12px">${st.mode === 'sum' ? 'この分野をぜんぶ選ぶ' : st.mode === 'ny' ? '全分野を選ぶ（模試セット以外）' : 'この章をぜんぶ選ぶ'}</label><span></span></div>`;
+      h += `<details class="chap" ${st.open[okey(c.ch)] ? 'open' : ''} data-ch="${c.ch}"><summary><span class="tw">▶</span><span>${st.mode === 'sum' || st.mode === 'ny' || st.mode === 'bk' || st.mode === 'kk' ? '' : c.ch + '章 '}${c.title}</span><span class="cnt">${nSel ? nSel + (st.mode === 'sum' ? 'テーマ' : st.mode === 'bk' ? '題' : st.mode === 'kk' ? '種類' : '単元') + 'を選択' : ''}</span></summary>`;
+      h += `<div class="trow"><input type="checkbox" id="all-${st.grade}-${c.ch}" data-all="${c.ch}" ${nSel && c.topics.filter(t => t.id !== 'ny-moshi').every(t => st.sel[t.id]) ? 'checked' : ''}><label for="all-${st.grade}-${c.ch}" style="color:var(--ui-sub);font-size:12px">${st.mode === 'sum' ? 'この分野をぜんぶ選ぶ' : st.mode === 'ny' ? '全分野を選ぶ（模試セット以外）' : st.mode === 'kk' ? 'ここをぜんぶ選ぶ' : 'この章をぜんぶ選ぶ'}</label><span></span></div>`;
       let lastSec = '';
       for (const t of c.topics) {
         const on = !!st.sel[t.id]; const n = on ? st.sel[t.id] : md.def;
@@ -63343,7 +64148,7 @@ window.fitSheets = function (root) {
     }
     if (!h) h = `<p class="empty">この学年の単元はまだありません。</p>`;
     tree.innerHTML = h;
-    $('#cntlbl').textContent = st.mode === 'ls' ? '先生がいなくても1人で1回分を進めるセット：なるほど（なぜ？）→ わかる（解き方）→ 演習問題 → 解答で丸つけ → チェックテスト。右の数字 = 演習問題の数' : st.mode === 'bk' ? '入試の難しい問題を「分解」して段階的に解く。例題→練習→類題。学年＝その学年までの内容。右の数字 = 類題の数' : st.mode === 'ny' ? '入試数学 大問ジェネレーター。学年＝その学年までの範囲、むずかしさ＝基礎・標準・発展。右の数字 = 大問の数' : st.mode === 'sum' ? '3年間の要点を28テーマで。右の数字 = 確認問題の数' : st.mode === 'why' ? '「なぜ？」から考えて、しくみを理解するプリント（1単元1枚）' : `右の数字 = ${md.cnt}`;
+    $('#cntlbl').textContent = st.mode === 'kk' ? '計算の級：20級（整数）→ 1級（2次方程式）。1回10問・やさしい順。右の数字 = 回数（A・B・C… の順。むずかしさ「基本だけ」= A〜D、「応用まで」= E〜H から）' : st.mode === 'ls' ? '先生がいなくても1人で1回分を進めるセット：なるほど（なぜ？）→ わかる（解き方）→ 演習問題 → 解答で丸つけ → チェックテスト。右の数字 = 演習問題の数' : st.mode === 'bk' ? '入試の難しい問題を「分解」して段階的に解く。例題→練習→類題。学年＝その学年までの内容。右の数字 = 類題の数' : st.mode === 'ny' ? '入試数学 大問ジェネレーター。学年＝その学年までの範囲、むずかしさ＝基礎・標準・発展。右の数字 = 大問の数' : st.mode === 'sum' ? '3年間の要点を28テーマで。右の数字 = 確認問題の数' : st.mode === 'why' ? '「なぜ？」から考えて、しくみを理解するプリント（1単元1枚）' : `右の数字 = ${md.cnt}`;
   }
 
   function cfg() {
@@ -63351,6 +64156,7 @@ window.fitSheets = function (root) {
     if (st.mode === 'bk') U.bunkai.forEach(b => { if (st.sel[b.id] && b.grade <= st.grade) items.push({ id: b.id, n: Math.min(3, +st.sel[b.id] || 1) }); });
     else if (st.mode === 'ny') nyList(st.grade).forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: Math.min(5, +st.sel[t.id] || 1) }); });
     else if (st.mode === 'sum') U.themes.forEach(th => { if (st.sel[th.id]) items.push({ id: th.id, n: +st.sel[th.id] || MODES.sum.def }); });
+    else if (st.mode === 'kk') { chaptersOf(0).forEach(c => c.topics.forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: t.id === 'kk-rec' ? 1 : Math.min(16, +st.sel[t.id] || MODES.kk.def) }); })); }
     else U.topics.forEach(t => { if (st.sel[t.id] && (st.mode === 'why' ? t.why : !t.whyOnly)) items.push({ id: t.id, n: +st.sel[t.id] || MODES[st.mode].def }); if (st.mode === 'prac' || st.mode === 'test' || st.mode === 'ls') (t.subs || []).forEach(u => { const k = t.id + '#' + u.id; if (st.sel[k]) items.push({ id: k, n: +st.sel[k] }); }); });
     // 学年をまたいで選んでいても、教科書の順番どおりに並べる
     return { mode: st.mode, seed: st.seed, grade: st.grade, maxLv: st.maxLv, hint: st.hint, off: st.off, lsWhy: st.lsWhy !== false, items };
@@ -63360,7 +64166,7 @@ window.fitSheets = function (root) {
     const c = cfg(); const pv = $('#preview');
     $('#seed').value = st.seed;
     const nT = c.items.length; const nQ = c.items.reduce((s, x) => s + x.n, 0);
-    $('#sum').innerHTML = nT ? (st.mode === 'why' ? `<b>なるほど</b>　${nT}単元` : st.mode === 'sum' ? `<b>まとめ</b>　${nT}テーマ・確認問題 ${nQ}問` : st.mode === 'bk' ? `<b>分解</b>　${nT}題` : st.mode === 'ny' ? `<b>入試</b>　中${st.grade}までの範囲・${c.items.map(x => (nyList(st.grade).find(t => t.id === x.id) || {}).title + ' ' + x.n + (x.id === 'ny-moshi' ? 'セット' : '題')).join('、')}` : `<b>${MODES[st.mode].label}</b>　${nT}単元・${MODES[st.mode].cnt} ${nQ}問`) : '左で単元を選んでください';
+    $('#sum').innerHTML = nT ? (st.mode === 'why' ? `<b>なるほど</b>　${nT}単元` : st.mode === 'sum' ? `<b>まとめ</b>　${nT}テーマ・確認問題 ${nQ}問` : st.mode === 'bk' ? `<b>分解</b>　${nT}題` : st.mode === 'kk' ? `<b>計算</b>　${nT}種類・${nQ}回分` : st.mode === 'ny' ? `<b>入試</b>　中${st.grade}までの範囲・${c.items.map(x => (nyList(st.grade).find(t => t.id === x.id) || {}).title + ' ' + x.n + (x.id === 'ny-moshi' ? 'セット' : '題')).join('、')}` : `<b>${MODES[st.mode].label}</b>　${nT}単元・${MODES[st.mode].cnt} ${nQ}問`) : '左で単元を選んでください';
     if (!nT) { pv.innerHTML = `<div class="empty"><b>使い方</b><br>① 上でプリントの種類を選ぶ<br>（なるほど＝しくみ／わかる＝解き方／とく＝練習／テスト＝定期テスト形式／まとめ＝3年間の総復習）<br>② 左のリストで単元にチェック、右の数字で問題数を決める<br>③ 「印刷」で、問題と解答をまとめて印刷<br><br>「別の問題にする」を押すと数字が変わった新しいプリントになります。</div>`; return; }
     let sheets;
     try { sheets = compose(c); } catch (e) { pv.innerHTML = `<div class="empty">プリントを作れませんでした：${e.message}</div>`; console.error(e); return; }
@@ -63377,7 +64183,7 @@ window.fitSheets = function (root) {
   }
 
   function renderAll() {
-    $('#gradeWrap').hidden = st.mode === 'sum';
+    $('#gradeWrap').hidden = st.mode === 'sum' || st.mode === 'kk';
     document.querySelectorAll('#gradeSeg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.g === st.grade)));
     document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === st.mode)));
     $('#lv').value = st.maxLv; $('#hint').checked = st.hint; $('#answers').value = st.answers; const lw = $('#lsWhy'); if (lw) { lw.checked = st.lsWhy !== false; lw.closest('label').style.display = st.mode === 'ls' ? '' : 'none'; }
@@ -63397,6 +64203,7 @@ window.fitSheets = function (root) {
       else if (el.dataset.n) { st.sel[el.dataset.n] = Math.max(1, Math.min(30, +el.value || 1)); }
       else if (el.dataset.all && st.mode === 'bk') { chaptersOf(st.grade).find(x => x.ch === +el.dataset.all).topics.forEach(b => { if (el.checked) st.sel[b.id] = st.sel[b.id] || 1; else delete st.sel[b.id]; }); }
       else if (el.dataset.all && st.mode === 'ny') { nyList(st.grade).forEach(t => { if (t.id === 'ny-moshi') return; if (el.checked) st.sel[t.id] = st.sel[t.id] || 1; else delete st.sel[t.id]; }); }
+      else if (el.dataset.all && st.mode === 'kk') { const c = chaptersOf(0).find(x => x.ch === +el.dataset.all); c.topics.forEach(t => { if (el.checked) st.sel[t.id] = st.sel[t.id] || MODES.kk.def; else delete st.sel[t.id]; }); }
       else if (el.dataset.all && st.mode === 'sum') { const c = chaptersOf(0).find(x => x.ch === +el.dataset.all); c.topics.forEach(th => { if (el.checked) st.sel[th.id] = st.sel[th.id] || MODES.sum.def; else delete st.sel[th.id]; }); }
       else if (el.dataset.all) { const ch = +el.dataset.all; U.byGrade(st.grade).filter(t => t.ch === ch && !t.drill && (st.mode === 'why' ? t.why : !t.whyOnly)).forEach(t => { if (el.checked) st.sel[t.id] = st.sel[t.id] || MODES[st.mode].def; else delete st.sel[t.id]; }); }
       else if (el.dataset.g) { const [tid, gid] = el.dataset.g.split('|'); const off = new Set(st.off[tid] || []); if (el.checked) off.delete(gid); else off.add(gid); st.off[tid] = [...off]; }
@@ -63472,7 +64279,7 @@ window.fitSheets = function (root) {
   }
   function regen(pid) {
     const cs = copies(pid); const src = cs.find(c => c.dataset.gen); if (!src) return;
-    const [tid, gid] = src.dataset.gen.split('/'); const t = U.topics.find(x => x.id === tid); const g = t && t.gens.find(x => x.id === gid); if (!g) return;
+    const [tid, gid] = src.dataset.gen.split('/'); const t = U.topics.find(x => x.id === tid); const g = tid === 'kk' ? (window.KYU_GENS && window.KYU_GENS.get(gid)) : t && t.gens.find(x => x.id === gid); if (!g) return;
     const p = window.makeOne(g, makeRng(Math.floor(Math.random() * 1e9)), new Set());
     p.__pid = pid; if (src.dataset.w) Object.defineProperty(p, '_w', { value: +src.dataset.w, configurable: true });
     cs.forEach(c => {
