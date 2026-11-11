@@ -506,6 +506,11 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .zk-work{margin:2mm 0}.zk-wl{font-size:9.5pt;font-weight:700;color:#1d6b52}
 .zk-al{text-align:right;font-size:10pt;margin-top:1mm}
 .zk-gd{margin:2mm 0 0 0;padding:0;list-style:none}.zk-gd li{margin-bottom:1.5mm}.zk-gdq{font-size:10pt;line-height:1.7}
+.zkans .zka-b{border:1px solid #d5dde3;border-radius:2mm;padding:2mm 3mm 2.5mm;margin:0 0 3mm;break-inside:avoid}
+.zkans .zka-h{display:flex;gap:3mm;align-items:baseline;border-bottom:1.5px solid var(--red);padding-bottom:1mm;margin-bottom:1.5mm}.zkans .zka-h b{font-size:11pt}.zkans .zka-h span{font-size:8.5pt;color:#666}
+.zkans .zka-gg{display:flex;flex-wrap:wrap;gap:1mm 5mm;font-size:9pt;margin:0 0 1.5mm}.zkans .zka-gg b{color:#1d6b4f;margin-right:1.5mm}
+.zkans .zka-gd{font-size:9.5pt;line-height:1.7;margin:0 0 1.5mm}.zkans .zka-gd b{color:#1d6b4f;margin-right:1mm}
+.zkans .zk-steps{margin:1mm 0}.zkans .zk-sum{margin-top:1.5mm}
 .zk-ansblock{display:none}.ansheet .zk-ansblock{display:block;margin-top:2mm;border-top:2px solid var(--red);padding-top:2mm}
 .ansheet .zk-work .work{min-height:0!important}
 /* 図形対策: 1枚に収まるように小さめに */
@@ -529,6 +534,23 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .zk-sf svg{max-width:33mm!important;max-height:28mm}
 .zk-steps.cp .zk-sf{display:none}
 .zk-steps.cp .zk-st{grid-template-columns:5.5mm 1fr}
+/* 例題と解説の紙を1枚に収める（つめた配置） */
+.zkex .bksec{margin:2.6mm 0 1.4mm}
+.zkex .bkp{padding:2mm 3mm;line-height:1.8;margin-bottom:1.6mm}
+.zkex .zkp .bkp-f svg{max-height:34mm}
+.zkex .zk-gg{margin:1.2mm 0 0.6mm}.zkex .zk-g,.zkex .zk-c{line-height:1.55;padding:1.1mm 2.5mm}
+.zkex .zk-hints{gap:1mm;margin:0.6mm 0 1mm}.zkex .zk-hints>div{line-height:1.5}
+.zkex .zk-hf svg{max-height:19mm!important}
+.zkex .zk-h3 .zk-ht{columns:2;column-gap:5mm}.zkex .zk-gq{break-inside:avoid}
+.zkex .zk-steps{gap:1.2mm}
+.zkex .zk-st{grid-template-columns:5.5mm 25mm 1fr;padding:1mm 1.4mm;gap:1.6mm}
+.zkex .zk-sf svg{max-width:25mm!important;max-height:21mm!important}
+.zkex .zk-st:not(:has(.zk-sf)){grid-template-columns:5.5mm 1fr}
+.zkex .zk-sb{line-height:1.5}.zkex .zk-tag{margin-bottom:0.3mm}
+.zkex .zk-sum{line-height:1.6;padding:1.4mm 3mm;margin:1.6mm 0}
+.zkex .zk-sum.pf>div{columns:2;column-gap:6mm;column-rule:1px solid #d6e5de}
+.zk-pn.two{display:grid;grid-template-columns:3fr 2fr;gap:3mm;align-items:start}.zk-pn .bkpt,.zk-pn .zk-note{margin:0 0 1.5mm}
+.zkex .bkpt ul{font-size:9.4pt;line-height:1.55}.zkex .zk-note{line-height:1.55}
 .zk-mem{display:inline-block;min-width:1.15em;padding:0 .15em;line-height:1.15;border:1.3px solid #127a4a;border-radius:2px;color:#127a4a;font-weight:700;text-align:center;font-size:.92em;margin:0 .1em}
 
 /* ===== 入試（大問ジェネレーター統合）: もとのスタイルを .nys の中だけに適用 ===== */
@@ -1671,9 +1693,9 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     return `<div class="zk-steps${compact ? ' cp' : ''}">${P.steps.map((st, i) => `<div class="zk-st"><div class="zk-sn">${i + 1}</div>${st.fig ? `<div class="zk-sf">${st.fig}</div>` : ''}<div class="zk-sb">${st.tag ? `<span class="zk-tag">${T(st.tag)}</span>` : ''}<div class="zk-stt">${T(compact ? String(st.t || '').replace(/[（(](?:黄|黄色|水色|青|オレンジ|赤|緑|ピンク|むらさき|灰色)(?:の部分|色)?[）)]/g, '') : (st.t || ''))}</div></div></div>`).join('<div class="zk-arr">⇩</div>')}</div>`;
   }
   const zkExp = (P) => P.kind === 'proof' && /説明しなさい|説明せよ|理由を説明|わけを説明/.test(P.q || '') && !/証明しなさい/.test(P.q || '');
-  function zkSum(P) { return P.a ? `<div class="zk-sum"><b>${P.kind === 'proof' ? (zkExp(P) ? '説明をまとめて書くと' : '証明をまとめて書くと') : '答え'}</b><div>${T(P.a)}</div></div>` : ''; }
+  function zkSum(P) { return P.a ? `<div class="zk-sum${P.kind === 'proof' ? ' pf' : ''}"><b>${P.kind === 'proof' ? (zkExp(P) ? '説明をまとめて書くと' : '証明をまとめて書くと') : '答え'}</b><div>${T(P.a)}</div></div>` : ''; }
   function composeZukei(cfg) {
-    const sheets = [];
+    const sheets = [], ans = [];
     for (const it of cfg.items) {
       const z = (U.zkList || []).find(x => x.id === it.id); if (!z) continue;
       const used = new Set();
@@ -1683,9 +1705,9 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       h += `<div class="bksec"><span class="bksec-t">例題</span><small>まず［仮定］と［結論］をはっきりさせてから考えよう</small></div>` + zkProb(ex) + zkGG(ex, false);
       h += `<div class="bksec"><span class="bksec-t">ヒント</span><small>わからなければ1から順に見よう</small></div>` + zkHints(ex, 3);
       h += `<div class="bksec"><span class="bksec-t">解説</span><small>1段ずつ、図の色のついた所に注目</small></div>` + zkSteps(ex) + zkSum(ex);
-      const pt = ex.point || z.point; if (pt && pt.length) h += bkPoint(pt);
-      if (ex.note) h += `<div class="zk-note"><b>研究</b>　${T(ex.note)}</div>`;
-      sheets.push({ cls: 'prac zk', html: h, fixed: 'q' });
+      const pt = ex.point || z.point; const pn = (pt && pt.length ? bkPoint(pt) : '') + (ex.note ? `<div class="zk-note"><b>研究</b>　${T(ex.note)}</div>` : '');
+      if (pn) h += `<div class="zk-pn${pt && pt.length && ex.note ? ' two' : ''}">${pn}</div>`;
+      sheets.push({ cls: 'prac zk zkex', html: h, fixed: 'q' });
       const lv = cfg.maxLv || 2;
       for (let k = 0; k < (it.n || 1); k++) {
         const P = mk('P' + k);
@@ -1699,11 +1721,33 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
           s += `<div class="zk-work"><div class="zk-wl">${P.kind === 'proof' ? (zkExp(P) ? '［説明］' : '［証明］') : '［考え方と式］'}</div><div class="work" style="min-height:${z.workH || 70}mm"></div>${P.kind !== 'proof' ? '<div class="zk-al">答え　<span class="zk-bl wide"></span></div>' : ''}</div>`;
           if (lv === 2) s += zkHints(P, 2);
         }
-        s += `<div class="zk-ansblock">${P.kind === 'proof' ? '' : zkSteps(P, true)}${zkSum(P)}</div>`; // 証明は「まとめて書くと」だけ（1枚に収める）
-        sheets.push({ cls: 'prac zk', html: s });
+        sheets.push({ cls: 'prac zk', html: s, fixed: 'q', zkQ: true });
+        ans.push(zkAnsBlock(z, P, `演習${it.n > 1 ? k + 1 : ''}（${tag}）`, lv));
       }
     }
+    // 解答: 問題文はのせず、解き方だけを順に並べる（1枚に入るだけ入れて、紙を減らす）
+    const pages = []; let cur = [], hmm = 0; const LIM = 240;
+    for (const a of ans) { if (cur.length && hmm + a.mm > LIM) { pages.push(cur); cur = []; hmm = 0; } cur.push(a); hmm += a.mm; }
+    if (cur.length) pages.push(cur);
+    pages.forEach((pg, i) => sheets.push({ cls: 'prac zk zkans', fixed: 'ans', zkA: true, html: head({ cls: 'zk', label: '図形' }, `演習の解答${pages.length > 1 ? `（${i + 1}/${pages.length}）` : ''}`, '<span class="sub">問題は演習のプリントを見よう</span>') + pg.map(a => a.html).join('') }));
     return sheets;
+  }
+  /** 演習1題分の解答（問題文なし）: 題名 → ［仮定］［結論］の答え → (誘導の答え) → 解き方（計算）→ 答え・証明のまとめ。mm は高さの見つもり */
+  function zkAnsBlock(z, P, label, lv) {
+    const plain = (t) => String(t || '').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '').replace(/\$|\{|\}|\\/g, '');
+    const lines = (t, w) => plain(t).split('\n').reduce((n, x) => n + Math.max(1, Math.ceil(x.length / w)), 0);
+    let h = `<div class="zka-b"><div class="zka-h"><b>${z.no}. ${T(z.title)}</b><span>${label}</span></div>`; let mm = 11;
+    if (lv <= 1 && P.guided && P.guided.length) {
+      h += `<div class="zka-gd">${P.guided.map((g, i) => `<div><b>(${i + 1})</b> ${T(g.a || '')}</div>`).join('')}</div>`; mm += P.guided.reduce((n, g) => n + 4.6 * lines(g.a, 70), 3);
+    } else if (P.given && P.given.length) {
+      h += `<div class="zka-gg"><span><b>［仮定］</b>${P.given.map((x, i) => `${ZKC[i]} ${T(x)}`).join('　')}</span><span><b>［結論］</b>${T(P.goal || '')}</span></div>`; mm += 4.6 * Math.max(1, Math.ceil(P.given.map(plain).join('　').length / 70)) + 4;
+    }
+    if (P.kind !== 'proof' && P.steps && P.steps.length) {
+      h += zkSteps(P, true);
+      for (let i = 0; i < P.steps.length; i += 2) { const r = [P.steps[i], P.steps[i + 1]].filter(Boolean).map(st => lines(st.t, 30) + (st.tag ? 1.1 : 0)); mm += 5 + 4.4 * Math.max(...r); }
+    }
+    if (P.a) { h += zkSum(P); mm += 7 + 4.6 * lines(P.a, P.kind === 'proof' ? 62 : 70); }
+    return { html: h + '</div>', mm: mm + 4 };
   }
   function composeBunkai(cfg) {
     const sheets = [];
@@ -76780,7 +76824,7 @@ window.fitSheets = function (root) {
     const top = sec.getBoundingClientRect().top + parseFloat(getComputedStyle(sec).paddingTop);
     let bottom = 0; kids.forEach(c => { const r = c.getBoundingClientRect(); bottom = Math.max(bottom, r.bottom + (parseFloat(getComputedStyle(c).marginBottom) || 0)); });
     const h = bottom - top; sec.dataset.fh = (h / H).toFixed(3);
-    if (h > H && h < H * 1.22) { const r = Math.max(0.81, (H - 3 * mm) / h); kids.forEach(c => { c.style.zoom = r; }); sec.classList.add('fitted'); }
+    const lim = sec.classList.contains('zkex') ? 1.34 : 1.22; if (h > H && h < H * lim) { const r = Math.max(sec.classList.contains('zkex') ? 0.74 : 0.81, (H - 3 * mm) / h); kids.forEach(c => { c.style.zoom = r; }); sec.classList.add('fitted'); }
   });
 };
 (function () {
@@ -76872,7 +76916,7 @@ window.fitSheets = function (root) {
     let html = '';
     const fx = sheets.filter(s => s.fixed), nf = sheets.filter(s => !s.fixed);
     // 1回分セットは、演習問題の解答のページもセットの一部として並べる
-    if (fx.length) html += sheets.map(s => s.fixed ? `<section class="${cls(s, s.fixed === 'ans')}">${s.html}</section>` : (st.answers !== 'only' ? `<section class="${cls(s, false)}">${s.html}</section>` : '')).join('');
+    if (fx.length) html += sheets.map(s => s.fixed ? ((s.zkA && st.answers === 'none') || (s.zkQ && st.answers === 'only') ? '' : `<section class="${cls(s, s.fixed === 'ans')}">${s.html}</section>`) : (st.answers !== 'only' ? `<section class="${cls(s, false)}">${s.html}</section>` : '')).join('');
     else if (st.answers !== 'only') html += nf.map(s => `<section class="${cls(s, false)}">${s.html}</section>`).join('');
     if (st.answers !== 'none') html += nf.map(s => `<section class="${cls(s, true)}">${s.html}</section>`).join('');
     pv.innerHTML = html;
