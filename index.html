@@ -369,6 +369,50 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .kcg{display:grid;grid-template-columns:1fr 1fr;column-gap:5mm;align-items:start}
 .kcg>.grp{margin-bottom:2.5mm}
 .kcg>.grp .ins{font-size:.95em}
+.kcg.c3{grid-template-columns:1fr 1fr 1fr;column-gap:4mm}
+/* 入試の診断テスト */
+.dgq{margin-bottom:1.5mm}
+.dgq>.grp{margin-bottom:2mm}
+.dgma{flex-wrap:wrap;gap:1.5mm 3mm}
+.dgmb{display:inline-flex;align-items:flex-end;gap:1mm}
+.dgmb small{font-size:8pt;color:var(--sub);white-space:nowrap}
+.dgmbx{display:inline-block;min-width:20mm;min-height:7mm;border-bottom:1px solid var(--ink)}
+.sheet:not(.ansheet) .dgmav{display:none}
+.ansheet .dgmb{display:none}
+.dgq .pfig svg{max-height:38mm;max-width:100%}
+.dgq.kcg .pfig svg{max-width:42mm}
+.ansheet .dgq .sol svg{max-height:44mm;max-width:100%}
+.ansheet .dgq .pb.hasfig:has(.sol svg) .pfig{display:none}
+.dgq:not(.kcg) .pfig svg{max-height:48mm}
+.dgq .pb.hasfig .pq{grid-template-columns:auto 1fr auto}
+.dgq .pb.hasfig:not(.figbelow) .pfig{grid-column:3;grid-row:1;margin-top:0}
+.dgn{display:inline-grid;place-items:center;min-width:6.5mm;height:6.5mm;padding:0 1mm;border:1.5px solid var(--ink);border-radius:1.5mm;font-size:10pt;font-weight:700;margin-right:1.5mm;flex:none}
+.dglead{font-size:9.5pt;margin:0 0 3mm;padding:1.5mm 3mm;border-left:3px solid #b8541e;background:#fbf3ec}
+.dgsec{margin-top:4mm}
+.dgsec.top{margin-top:0}
+.dgtop{display:grid;grid-template-columns:1.25fr 1fr;gap:4mm;align-items:start;margin-bottom:3mm}
+.dguse{font-size:9pt;border:1px solid #c9b9ab;border-radius:2mm;padding:1.5mm 3mm;background:#fbf3ec}
+.dguse ol{margin:.5mm 0 0;padding-left:5mm}
+.dguse li{margin:.3mm 0}
+.dgsc{font-size:9pt}
+.dgs{width:100%;border-collapse:collapse;margin-top:1mm}
+.dgs th,.dgs td{border:1px solid #777;padding:1mm;text-align:center;font-size:8.5pt}
+.dgs th{background:#f1e6dc}
+.dgs td{height:9mm;white-space:nowrap}
+.dgbox{display:inline-block;width:8mm;height:6mm;border-bottom:1px solid #777;vertical-align:bottom}
+.dgbox.s{width:7mm;height:4.5mm}
+.dgof{margin-left:1mm}
+.dgkf{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:11pt;color:#8a3b12;border-bottom:2px solid #b8541e;margin:3mm 0 1mm;padding-bottom:.5mm}
+.dgkf small{font-size:9pt;color:var(--ink);font-weight:400}
+.dgkt{width:100%;border-collapse:collapse;font-size:8.6pt;line-height:1.45;table-layout:fixed;break-inside:auto}
+.dgkt th,.dgkt td{border:1px solid #888;padding:.4mm 1.5mm;vertical-align:middle}
+.dgkt + .dgkt{margin-top:-1px}
+.dgkt th{background:#f1e6dc;font-size:8.3pt}
+.dgkt tr{break-inside:avoid}
+.dgkt .n{width:9mm;text-align:center;font-weight:700}
+.dgkt .ox{width:11mm}
+.dgkt .k{width:44%}
+.dgkt td.go{font-size:7.6pt;line-height:1.22}
 
 /* 語群（言葉の空らんを選択式に） */
 .gogun{display:flex;flex-wrap:wrap;align-items:center;gap:1.2mm 2.2mm;margin:1.6mm 0 .6mm;padding:1.2mm 2mm;border:1px solid #9aa7b8;border-radius:2mm;font-size:.92em}
@@ -1520,8 +1564,8 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   function composeSum(cfg) {
     const sheets = [];
     for (const it of cfg.items) {
-      const bb = (U.bunkai || []).find(x => x.id === it.id && (x.kc || x.miss)); // 基礎力チェック・ミスをなくそう（3年間の範囲で）
-      if (bb) { const c3 = Object.assign({}, cfg, { grade: 3 }); sheets.push(...(bb.kc ? kcSheets(bb, c3) : missSheets(bb, c3))); continue; }
+      const bb = (U.bunkai || []).find(x => x.id === it.id && (x.kc || x.miss || x.dg)); // 基礎力チェック・ミスをなくそう・入試の診断テスト（3年間の範囲で）
+      if (bb) { const c3 = Object.assign({}, cfg, { grade: 3 }); sheets.push(...(bb.kc ? kcSheets(bb, c3) : bb.dg ? dgSheets(bb, c3) : missSheets(bb, c3))); continue; }
       const th = U.themes.find(x => x.id === it.id); if (!th) continue;
       const R = makeRng(cfg.seed ^ hash(th.id + 'S'));
       const cards = th.cards(R);
@@ -1633,6 +1677,182 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     return `<div class="bkplan"><div class="pl-h"><span class="pl-title">解き方の地図</span><span class="pl-msg">${msg}</span></div>${lead}<div class="pl-row">${row}</div><div class="pl-leg"><span>→ わかることを増やす（前から）</span><span>← ゴールに何が必要か（後ろから・逆算）</span></div>${back}</div>`;
   }
   function bkPoint(pt) { return pt && pt.length ? `<div class="bkpt"><span>Point</span><ul>${pt.map(x => `<li>${T(x)}</li>`).join('')}</ul></div>` : ''; }
+  /* ---------- 入試の診断テスト（項目ごとに1問、テスト＋診断カルテ） ---------- */
+  /** 練習するプリントのコード → 「モード名：中身」（サイトで選べるものだけ。ないときは null） */
+  function dgGo(code) {
+    const [k, id] = String(code).split(':');
+    if (k === 'u') { const t = U.topics.find(x => x.id === id); return t ? `わかる・とく（中${t.grade}）：${t.title}` : null; }
+    if (k === 'zk') { const z = (U.zkList || []).find(x => x.id === id); return z ? `図形（中${z.grade}）：${z.no}. ${z.title}` : null; }
+    if (k === 'bk') { const b = (U.bunkai || []).find(x => x.id === id && !x.kc && !x.miss && !x.dg); return b ? `分解：${b.title}` : null; }
+    if (k === 'kk') { const q = (U.kyu || []).find(x => x.id === id); return q ? `計算：${q.title}` : null; }
+    if (k === 'sum') { const th = U.themes.find(x => x.id === id); return th ? `まとめ：${th.no}. ${th.title}` : null; }
+    return null;
+  }
+  G.dgGo = dgGo;
+  const DG_PLAIN = (s) => String(s == null ? '' : s).replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').replace(/\[\[|\]\]/g, '').replace(/\$/g, '').replace(/\s+/g, ' ').trim();
+  /** 1問の高さの見つもり（mm）。w = 1（1列）/ 2（2列）/ 3（3列） */
+  function dgEst(r, w) {
+    const per = w === 1 ? 46 : w === 2 ? 21 : 13; const p = r.p;
+    const lines = (s) => s ? Math.ceil(DG_PLAIN(s).length / per) : 0;
+    const q = String(p.q || ''); const rows = (q.match(/<tr/g) || []).length;
+    const qText = q.replace(/<table[\s\S]*?<\/table>/g, '');
+    const fr = (String(q).match(/\{[^{}]*\/[^{}]*\}/g) || []).length ? 2.5 : 0; // 分数は行が高い
+    let txt = 6 + 5 * (lines(r.ins) - 1) + 5.4 * lines(qText) + fr + rows * 7;
+    let fig = 0; if (p.fig) { const f = String(p.fig); const m = f.match(/viewBox="\s*[\d.\-]+[ ,]+[\d.\-]+[ ,]+([\d.]+)[ ,]+([\d.]+)/); const sw = f.match(/<svg[^>]*style="[^"]*width:\s*([\d.]+)mm/); const vw = m ? +m[1] : 200, vh = m ? +m[2] : 150; const fw = Math.min(sw ? +sw[1] : vw * 0.26, w === 1 ? 120 : w === 2 ? 84 : 55); fig = Math.min(w === 1 ? 48 : 38, fw * vh / vw) + 2; }
+    const body = p.fig && p.figPos !== 'below' && w === 1 ? Math.max(txt, fig + 6) : txt + fig;
+    const work = (p.h === undefined ? 2 : p.h) * 8; const ans = p.a ? 8 : 0;
+    return body + work + ans + 3;
+  }
+  /** 画面があるときは、実際に並べて高さ（mm）をはかる（fitSheets と同じはかり方）。はかれないときは null */
+  function dgMeasure(cls, parts) {
+    if (typeof document === 'undefined' || !document.body || !document.body.getBoundingClientRect) return null;
+    const mmPx = 96 / 25.4; const box = document.createElement('section');
+    box.className = 'sheet ' + cls; box.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;min-height:0';
+    box.innerHTML = parts.map((h, i) => `<div data-dgm="${i}">${h}</div>`).join('') + '<div data-dgm="end"></div>';
+    try {
+      document.body.appendChild(box);
+      const tops = [...box.querySelectorAll(':scope > [data-dgm]')].map(e => e.getBoundingClientRect().top);
+      if (!tops.some((t, i) => i && t > tops[0])) return null; // 表示されていない（高さ0）
+      return parts.map((_, i) => (tops[i + 1] - tops[i]) / mmPx);
+    } catch (e) { return null; } finally { box.remove(); }
+  }
+  function dgSheets(b, cfg) {
+    const R = makeRng(cfg.seed ^ hash(b.id + 'DG')); const seen = new Set(); const g = 3;
+    // 1. 項目ごとに、型の候補から1問つくる（つくれない型は次の候補へ）
+    let no = 0;
+    const parts = b.parts.map(pt => ({ field: pt.field, rows: pt.items.map(it => {
+      const refs = it.pick ? R.shuffle(it.ref.slice()) : it.ref; // pick: 候補の中から毎回ちがう型を選ぶ
+      const fits = (p) => { const q = DG_PLAIN(p.q), a = DG_PLAIN(p.a); return (!it.only || it.only.test(q)) && (!it.not || !it.not.test(q)) && (!it.notA || !it.notA.test(a)); };
+      for (const ref of refs) {
+        const [tid, gid] = ref.split('/'); const t = U.topics.find(x => x.id === tid); const gen = t && t.grade <= g && t.gens.find(x => x.id === gid); if (!gen) continue;
+        let p = null; for (let k = 0; k < 60 && !p; k++) { let c; try { c = makeOne(gen, R, seen); } catch (e) { break; } if (c && (DG_PLAIN(c.q) || c.fig) && fits(c)) p = c; } // 項目に合う問題が出るまで作り直す
+        if (!p) continue;
+        p = Object.assign({}, p); return { it, gen, p, ins: gen.ins || '次の問いに答えなさい。', go: it.go.map(dgGo).filter(Boolean) };
+      }
+      return null;
+    }).filter(Boolean) })).filter(pt => pt.rows.length);
+    const nQ = parts.reduce((a, pt) => a + pt.rows.length, 0); if (!nQ) return [];
+    // 2. 並べ方: 3列（短い計算）・2列・1列（長い文・表・大きい図）
+    parts.forEach(pt => pt.rows.forEach(r => {
+      const gc = r.gen.cols || 1; const q = String(r.p.q || ''); const len = DG_PLAIN(q).length; const tbl = /<table/.test(q);
+      if (r.it.write) { r.w = 1; r.p.h = r.it.write; if (!r.p.sol) r.p.sol = r.p.a; r.p.a = ''; return; } // 証明・説明を書く問題: 1列、書く場所を広く（解答の写しには解き方の全文が出る）
+      r.w = gc >= 2 && !r.p.fig && !tbl && len <= 30 ? 3 : (gc >= 2 && !tbl) ? 2 : (!tbl && len + DG_PLAIN(r.ins).length <= (r.p.fig ? 110 : 140)) ? 2 : 1;
+      const h = r.p.h === undefined ? 2 : r.p.h; const big = parts.length > 1; r.p.h = Math.min(h, r.w === 1 ? (big ? 1.2 : 1.6) : r.w === 2 ? (big ? 0.8 : 1) : 0.8); // 全範囲版は問題が多いので、計算のスペースを少しせまく
+      // 答えが2つ以上ある問題は、答えの欄もその数だけ（表の ans か、問題文の (1)(2)… ①②… から）
+      const a = DG_PLAIN(r.p.a); if (!a) return;
+      let labs = Array.isArray(r.it.ans) ? r.it.ans : typeof r.it.ans === 'number' ? Array(r.it.ans).fill('') : null;
+      if (!labs) { const qq = DG_PLAIN(q); const m1 = [...new Set(qq.match(/[（(][1-9][)）]/g) || [])]; const m2 = [...new Set(qq.match(/[①②③④⑤]/g) || [])]; const m = m1.length >= 2 ? m1.map(x => x.replace(/[（）]/g, c => c === '（' ? '(' : ')')) : m2.length >= 2 ? m2 : null; if (m) labs = m; }
+      if (labs && labs.length >= 2) r.labs = labs;
+    }));
+    // 紙を節約するため、分野の中で 3列 → 2列 → 1列 の順に並べかえる（同じ列数の中では表の順）。番号はこの順につける
+    parts.forEach(pt => { pt.rows = [3, 2, 1].flatMap(w => pt.rows.filter(r => r.w === w)); });
+    parts.forEach(pt => { // 3列が1つだけなら2列に
+      for (let i = 0; i < pt.rows.length; i++) { if (pt.rows[i].w !== 3) continue; let j = i; while (j < pt.rows.length && pt.rows[j].w === 3) j++; if (j - i < 2) pt.rows[i].w = 2; i = j - 1; }
+    });
+    parts.forEach(pt => { pt.rows = [3, 2, 1].flatMap(w => pt.rows.filter(r => r.w === w)); pt.rows.forEach(r => { r.no = ++no; }); });
+    parts.forEach(pt => pt.rows.forEach(r => { // 図の置き場所: 図が小さく、文が短いときは文の右に。図が大きい・文が長いときは文の下に
+      if (!r.p.fig) return; const f = String(r.p.fig); const sw = f.match(/<svg[^>]*style="[^"]*width:\s*([\d.]+)mm/); const fw = sw ? +sw[1] : 60; const len = DG_PLAIN(r.p.q).length;
+      const beside = len > 0 && !/<table/.test(String(r.p.q)) && (r.w === 1 ? fw <= 80 : fw <= 48 && len <= 70);
+      r.p.figPos = beside ? '' : 'below';
+    }));
+    // 3. 行（1行 = 同じ列数の問題を横に並べたもの）にまとめる
+    const pbHTML = (r) => {
+      if (!r.labs) return probHTML(r.p, '', {});
+      const h = probHTML(Object.assign({}, r.p, { a: '' }), '', {}); const k = h.lastIndexOf('</div>');
+      const ml = `<div class="ansl dgma"><span class="al">答</span>${r.labs.map(l => `<span class="dgmb">${l ? `<small>${T(l)}</small>` : ''}<span class="dgmbx"></span></span>`).join('')}<span class="abox dgmav"><span class="ava">${T(r.p.a)}</span></span></div>`;
+      return h.slice(0, k) + ml + h.slice(k);
+    };
+    const cell = (r) => `<div class="grp small"><div class="ins"><span class="dgn">${r.no}</span><span>${T(r.ins)}</span></div><div class="pgrid c1">${pbHTML(r)}</div></div>`;
+    const lineHTML = (bl) => bl.w === 1 ? `<div class="kcq dgq">${cell(bl.line[0])}</div>` : `<div class="kcq dgq kcg${bl.w === 3 ? ' c3' : ''}">${bl.line.map(cell).join('')}</div>`;
+    const secHTML = (pt, top) => `<div class="bksec dgsec${top ? ' top' : ''}"><span class="bksec-t">${pt.field}</span><small>問題 ${pt.rows[0].no}〜${pt.rows[pt.rows.length - 1].no}</small></div>`;
+    const multi = parts.length > 1;
+    parts.forEach(pt => {
+      pt.blocks = []; let i = 0; const rs = pt.rows;
+      while (i < rs.length) {
+        const w = rs[i].w; const line = [rs[i]]; i++;
+        while (w > 1 && line.length < w && i < rs.length && rs[i].w === w) { line.push(rs[i]); i++; }
+        if (w === 2 && line.length === 1 && i < rs.length && rs[i].w === 3) { line.push(rs[i]); rs[i].w = 2; i++; } // 2列が1つ余ったら、次の短い問題と組む
+        pt.blocks.push({ w, line, mm: Math.max(...line.map(r => dgEst(r, w))) + 2.5 });
+      }
+      pt.secMM = 13;
+    });
+    const lead = `<div class="dglead">わかる問題から解こう。○× は最後の<b>診断カルテ</b>に。<b>できなかった問題は、カルテで練習するプリントを確認しよう。</b></div>`;
+    const hd = (tt) => head({ cls: 'bunk', label: '診断' }, tt, `目標時間 ${b.time}分　問題数 ${nQ}問　<span class="pg">中3までの内容</span>`, { total: nQ + '問' });
+    let LIM0 = 222, LIM = 238; // 見つもりのとき（1枚目は説明の分だけ少なく）
+    const all = parts.flatMap(pt => pt.blocks);
+    parts.forEach(pt => pt.rows.forEach(r => { r.no = 88; })); // はかるときの仮の番号
+    const ms = dgMeasure('bunk dgt', [hd('入試の診断テスト　（1/2）'), lead, multi ? secHTML(parts[0], true) : ''].concat(all.map(lineHTML)));
+    const ma = ms && dgMeasure('bunk dgt ansheet', all.map(lineHTML)); // 解答の写し（解き方が入る）の高さも
+    let LIMA = 1e9, LIMA0 = 1e9; all.forEach(x => { x.ma = 0; });
+    if (ms) { // はかれたときは、その高さで。問題の紙は 271mm の 105% まで（fitSheets が少し縮める）。解答の写しは、印刷で上に 8mm の余白がつくので (271−8)mm まで（縮めずに1枚に入る）
+      all.forEach((x, k) => { x.mm = ms[k + 3]; x.ma = ma ? ma[k] : x.mm; }); parts.forEach(pt => { pt.secMM = ms[2] + 4; });
+      LIM = 271 * 1.05 - ms[0]; LIM0 = LIM - ms[1]; LIMA = (271 - 8) * 1.0 - ms[0]; LIMA0 = LIMA - ms[1]; }
+    // 4. 紙に入れる: 分野ごとに、入るものから順に入れる（大きい問題で紙の下が空かないように）。番号は紙に入れた順
+    // 大きい問題から順に、入る紙に入れる（分野ごと。分野の見出しは、その分野の最初の紙に）。紙の中では表の順（3列 → 2列 → 1列）に並べ、番号は紙の順につける
+    const pages = []; no = 0;
+    const newPage = () => { const pg = { items: [], used: 0, usedA: 0, lim: pages.length ? LIM : LIM0, limA: pages.length ? LIMA : LIMA0 }; pages.push(pg); return pg; };
+    parts.forEach(pt => {
+      pt.blocks.forEach((x, k) => { x.ord = k; });
+      const smallest = Math.min(...pt.blocks.map(x => x.mm)), smallestA = Math.min(...pt.blocks.map(x => x.ma));
+      let start = pages[pages.length - 1]; const sec = multi ? pt.secMM : 0;
+      if (!start || start.used + sec + smallest > start.lim || start.usedA + sec + smallestA > start.limA) start = newPage();
+      if (multi) { start.items.push({ sec: pt, top: !start.items.length }); start.used += sec; start.usedA += sec; }
+      const open = [start];
+      pt.blocks.slice().sort((a, b) => Math.max(b.mm, b.ma) - Math.max(a.mm, a.ma)).forEach(x => {
+        let pg = open.find(q => q.used + x.mm <= q.lim && q.usedA + x.ma <= q.limA);
+        if (!pg) { pg = newPage(); open.push(pg); }
+        pg.items.push(x); pg.used += x.mm; pg.usedA += x.ma;
+      });
+      // 大きい問題（証明など）の紙が後ろになるように、この分野の紙を並べかえる（分野の見出しのある最初の紙はそのまま）
+      const big = (pg) => Math.max(0, ...pg.items.filter(x => x.line && pt.blocks.includes(x)).map(x => Math.max(x.mm, x.ma)));
+      const keep = multi || start.items.some(x => x.line && !pt.blocks.includes(x)) ? 1 : 0; const head0 = open.slice(0, keep), rest0 = open.slice(keep).sort((a, b) => multi ? b.usedA - a.usedA : big(a) - big(b)); // 全範囲版は、すいた紙を最後にして次の分野をその紙から始める
+      const at = pages.indexOf(open[keep]); if (at >= 0 && rest0.length) pages.splice(at, rest0.length, ...rest0);
+      open.splice(0, open.length, ...head0, ...rest0);
+      const order = [];
+      open.forEach(pg => { const mine = pg.items.filter(x => x.line).filter(x => pt.blocks.includes(x)).sort((a, b) => a.ord - b.ord); const rest = pg.items.filter(x => !mine.includes(x)); pg.items = rest.concat(mine); order.push(...mine); });
+      pt.rows = order.flatMap(x => x.line); pt.rows.forEach(r => { r.no = ++no; });
+    });
+    const sheets = pages.map(pg => pg.items).filter(pg => pg.length).map((pg, i, A) => {
+      const tt = `入試の診断テスト　${b.short}${A.length > 1 ? `（${i + 1}/${A.length}）` : ''}`;
+      let html = hd(tt);
+      if (i === 0) html += lead;
+      return { cls: 'bunk dgt', html: html + pg.map(x => x.sec ? secHTML(x.sec, x.top) : lineHTML(x)).join('') };
+    });
+    return sheets.concat(dgKarte(b, parts, nQ));
+  }
+  /** 診断カルテ（fixed: 'q'。解答だけの設定でも出す） */
+  function dgKarte(b, parts, nQ) {
+    const multi = parts.length > 1;
+    const use = `<div class="dguse"><b>使い方</b><ol><li>解答を見て、答え合わせをする。</li><li>下の表の「○×」に、できたら ○、できなかったら × を書く。(1)(2) や ①② のどれか1つでもまちがえたら × にしよう。</li><li>× の項目は、右の「練習するプリント」をやろう。上のボタン（わかる・とく・計算 など）と学年を選び、そのプリントにチェックすれば印刷できる。</li><li>しばらくしてから、もう一度この診断テストをやろう（問題は毎回かわる）。</li></ol></div>`;
+    const score = `<table class="dgs"><tr>${parts.map(pt => `<th>${pt.field}</th>`).join('')}${multi ? '<th>合計</th>' : ''}</tr><tr>${parts.map(pt => `<td><span class="dgbox"></span><span class="dgof">／ ${pt.rows.length}</span></td>`).join('')}${multi ? `<td><span class="dgbox"></span><span class="dgof">／ ${nQ}</span></td>` : ''}</tr></table>`;
+    const row = (r) => `<tr><td class="n">${r.no}</td><td class="k">${T(r.it.k)}</td><td class="ox"></td><td class="go">${r.go.map(x => `<div>${x}</div>`).join('')}</td></tr>`;
+    const thead = `<tr><th class="n">番号</th><th class="k">できること</th><th class="ox">○×</th><th class="go">できなかったら練習するプリント</th></tr>`;
+    const kf = (pt) => multi ? `<div class="dgkf">${pt.field}<small>○の数 <span class="dgbox s"></span> ／ ${pt.rows.length}</small></div>` : '';
+    const rowMM = (r) => 2 + 3.8 * Math.max(Math.ceil(DG_PLAIN(r.it.k).length / 24), r.go.reduce((a, x) => a + Math.ceil(x.length / 27), 0), 1);
+    const hd = (i, n) => head({ cls: 'bunk', label: 'カルテ' }, `診断カルテ　${b.short}${n > 1 ? `（${i + 1}/${n}）` : ''}`, `入試の診断テストの結果を書きこもう`, { total: nQ + '問' });
+    const topH = `<div class="dgtop">${use}<div class="dgsc"><b>○の数</b>${score}</div></div>`;
+    // 高さ（mm）: 見出し・使い方・分野の見出し・表の見出し行・各行（はかれるときは、はかる）
+    const rows = parts.flatMap(pt => pt.rows.map(r => ({ pt, r })));
+    let hMM = 26, topMM = 30 + (multi ? 16 : 14), kfMM = multi ? 10 : 0, thMM = 7, rMM = rows.map(x => rowMM(x.r)), lim = 255;
+    const ms = dgMeasure('bunk dgk', [hd(0, 2), topH, kf(parts[0]), `<table class="dgkt">${thead}</table>`].concat(rows.map(x => `<table class="dgkt">${row(x.r)}</table>`)));
+    if (ms) { [hMM, topMM, kfMM, thMM] = ms; rMM = ms.slice(4); lim = 271 * 1.1; }
+    // 紙に分ける: 分野の途中で紙がかわってもよい（表は紙ごとに見出し行をつける）
+    const pages = [[]]; let used = hMM + topMM; let last = null;
+    rows.forEach((x, k) => {
+      const newPart = x.pt !== last; const need = rMM[k] + (newPart ? kfMM + thMM + 3 : 0);
+      if (used + need > lim && pages[pages.length - 1].length) { pages.push([]); used = hMM; last = null; }
+      const pg = pages[pages.length - 1]; const startTbl = x.pt !== last;
+      if (startTbl) { pg.push({ pt: x.pt, rows: [], head: newPart }); used += kfMM + thMM + 3; }
+      pg[pg.length - 1].rows.push(x.r); used += rMM[k]; last = x.pt;
+    });
+    const seg = (sg) => `${sg.head ? kf(sg.pt) : (multi ? `<div class="dgkf">${sg.pt.field}（つづき）</div>` : '')}<table class="dgkt">${thead}${sg.rows.map(row).join('')}</table>`;
+    return pages.map((pg, i) => {
+      let html = hd(i, pages.length);
+      if (i === 0) html += topH;
+      html += pg.map(seg).join('');
+      return { cls: 'bunk dgk', fixed: 'q', html };
+    });
+  }
   /** 基礎力チェック: 各単元の型から、分野の基本をひととおり確かめる1枚（選んだ学年までの単元だけ） */
   function kcSheets(b, cfg) {
     const R = makeRng(cfg.seed ^ hash(b.id + 'KC')); const seen = new Set(); const g = cfg.grade || 3;
@@ -1754,6 +1974,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     for (const it of cfg.items) {
       const b = U.bunkai.find(x => x.id === it.id); if (!b) continue;
       if (b.kc) { sheets.push(...kcSheets(b, cfg)); continue; }
+      if (b.dg) { sheets.push(...dgSheets(b, Object.assign({}, cfg, { grade: 3 }))); continue; }
       if (b.miss) { sheets.push(...missSheets(b, cfg)); continue; }
       const used = new Set(); // 例題・練習・類題で同じ問題が出ないように（同じなら作り直す）
       const mk = (salt) => { const R = makeRng(cfg.seed ^ hash(b.id + salt)); let last; for (let k = 0; k < 60; k++) { try { const P = b.make(R); last = P; const key = String(P.q) + '|' + (P.a || ''); if (!used.has(key) || k >= 50) { used.add(key); return P; } } catch (e) { if (k >= 59 && !last) throw e; } } return last; };
@@ -43926,6 +44147,152 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 
 </script>
 <script>
+/* 入試の診断テスト（入試に必要な力を「項目」に分け、1項目1問で、できる・できないを確かめる）
+   問題は基礎力チェックと同じく、各単元の型（'topicId/genId'）から毎回自動でつくる。
+   項目: { k: できること, ref: [型の候補（最初に使えるもの）], core: 全範囲版に入れるか, go: できなかったら練習するプリント }
+   go のコード → 表示（compose の dgGo）:
+     'u:m2-2-2' 単元（わかる・とく・テスト）／ 'zk:z470' 図形・関数の対策 ／ 'bk:b31' 分解 ／ 'kk:kk3' 計算トレーニング ／ 'sum:s04' まとめ
+   ほかに: pick（候補から毎回ちがう型）、only / not（問題文がこれに合うものだけ）、notA（答えがこれのものは出さない）、write（証明・説明を書く問題。書く場所の行数）、ans（答えの欄の名前か数）
+   型がないので入れなかった項目: なし（入試に必要なものは、すべて既存の型で確かめられた）。
+   大きさの都合で入れなかった項目（型はある）: 近似値と有効数字、有理数と無理数、座標、図形の移動、角の二等分線と線分の比、相似な図形の辺の長さ（「相似を使って辺の長さ」で確かめる）、交わる弦の角、平行四辺形の中の三角形の面積、相対度数だけの計算、母集団と標本の用語 など */
+(function () {
+  const { U } = window;
+  const DG = [
+    { field: '数と式・方程式', time: 40, items: [
+      { k: '正負の数の四則計算ができる（累乗をふくむ）', ref: ['m1-1-6/powfour', 'm1-1-6/four'], core: true, go: ['u:m1-1-6', 'kk:kk11'] },
+      { k: '自然数を素因数分解できる', ref: ['m1-1-7/pf'], core: false, go: ['u:m1-1-7'] },
+      { k: '割合・代金などの数量を文字式で表せる', ref: ['m1-2-2/word_7', 'm1-2-2/word_5'], core: false, go: ['u:m1-2-2', 'sum:s02'] },
+      { k: '数量の関係を不等式で表せる', ref: ['m1-2-6/ineq'], core: false, go: ['u:m1-2-6'] },
+      { k: 'かっこをはずして1次式の計算ができる', ref: ['m1-2-5/comb'], core: true, go: ['u:m1-2-5', 'kk:kk9'] },
+      { k: '分数の形の式の加減ができる', ref: ['m2-1-2/fracform'], core: true, go: ['u:m2-1-2', 'kk:kk7'] },
+      { k: '単項式の乗除ができる', ref: ['m2-1-3/three'], core: false, go: ['u:m2-1-3', 'kk:kk7'] },
+      { k: '等式を指定された文字について解ける', ref: ['m2-1-5/formula'], core: false, go: ['u:m2-1-5', 'sum:s03'] },
+      { k: '乗法公式を使って式を展開・整理できる', ref: ['m3-1-5/combo'], only: /\)\^2|\)\(/, core: true, go: ['u:m3-1-5', 'kk:kk4'] },
+      { k: '共通因数と公式で因数分解できる', ref: ['m3-1-9/cfp', 'm3-1-8/td'], core: true, go: ['u:m3-1-9', 'kk:kk3'] },
+      { k: '因数分解を使ってくふうして式の値を求められる', ref: ['m3-1-10/val'], core: false, go: ['u:m3-1-10', 'sum:s04'] },
+      { k: '根号をふくむ式の乗除ができる', ref: ['m3-2-6/mix'], core: true, go: ['u:m3-2-6', 'kk:kk2'] },
+      { k: '分母を有理化して根号をふくむ式の加減ができる', ref: ['m3-2-9/rat'], only: /\/√/, core: true, go: ['u:m3-2-9', 'kk:kk2'] },
+      { k: '根号をふくむ式を乗法公式で展開できる', ref: ['m3-2-10/sqf'], core: false, go: ['u:m3-2-10', 'kk:kk2'] },
+      { k: '平方根の大小から、条件にあう自然数を求められる', ref: ['m3-2-2/nat'], core: false, go: ['u:m3-2-2', 'sum:s05'] },
+      { k: '√(na) が自然数になる n を求められる', ref: ['m3-2-7/nat'], core: true, go: ['u:m3-2-7', 'sum:s06'] },
+      { k: '整数の性質を文字式で説明できる（説明を書く）', ref: ['m2-1-4/full', 'm2-1-4/full_2', 'm2-1-4/full_3', 'm2-1-4/full_4', 'm2-1-4/full_6', 'm2-1-4/full_7'], pick: true, write: 7, core: true, go: ['u:m2-1-4', 'bk:b04'] },
+      { k: '並び方の規則を文字式で表せる', ref: ['m1-2-1/pattern', 'm1-2-4/goishi'], core: false, go: ['u:m1-2-1', 'bk:b02'] },
+      { k: '分数をふくむ1次方程式を解ける', ref: ['m1-3-2/frac'], core: true, go: ['u:m1-3-2', 'kk:kk8'] },
+      { k: '比例式を解ける', ref: ['m1-3-3/expr', 'm1-3-3/basic'], core: false, go: ['u:m1-3-3', 'kk:kk8'] },
+      { k: '1次方程式の解から、係数 a を求められる', ref: ['m1-3-2/finda'], core: false, go: ['u:m1-3-2'] },
+      { k: '1次方程式の文章題で式を立てて解ける（過不足）', ref: ['m1-3-4/kabu'], ans: 2, core: true, go: ['u:m1-3-4', 'bk:b05'] },
+      { k: '連立方程式を加減法で解ける', ref: ['m2-2-2/both'], core: true, go: ['u:m2-2-2', 'kk:kk6'] },
+      { k: '連立方程式の解から、係数 a, b を求められる', ref: ['m2-2-4/coef'], ans: ['$a$', '$b$'], core: false, go: ['u:m2-2-4'] },
+      { k: '連立方程式の文章題を解ける（代金・個数）', ref: ['m2-2-5/price'], ans: 2, core: true, go: ['u:m2-2-5'] },
+      { k: '連立方程式の文章題を解ける（速さ）', ref: ['m2-2-6/speed'], ans: 2, core: false, go: ['u:m2-2-6', 'bk:b07'] },
+      { k: '連立方程式の文章題を解ける（割合の増減）', ref: ['m2-2-7/rate'], ans: 2, core: false, go: ['u:m2-2-7', 'bk:b06'] },
+      { k: '2次方程式を平方根の考えで解ける', ref: ['m3-3-2/xm2', 'm3-3-2/xm'], core: false, go: ['u:m3-3-2', 'kk:kk1'] },
+      { k: '2次方程式を因数分解で解ける', ref: ['m3-3-5/fac'], core: true, go: ['u:m3-3-5', 'kk:kk1'] },
+      { k: '2次方程式を解の公式で解ける', ref: ['m3-3-4/irr'], core: true, go: ['u:m3-3-4', 'kk:kk1'] },
+      { k: '2次方程式の解から、係数ともう1つの解を求められる', ref: ['m3-3-7/one'], ans: ['$a$ の値', 'もう1つの解'], core: true, go: ['u:m3-3-7'] },
+      { k: '2次方程式の文章題を解ける（図形の面積）', ref: ['m3-3-9/rect', 'm3-3-9/road'], core: false, go: ['u:m3-3-9', 'bk:b26'] },
+    ] },
+    { field: '関数', time: 35, items: [
+      { k: '比例の式を求め、y の値を求められる', ref: ['m1-4-2/value'], core: false, go: ['u:m1-4-2', 'sum:s10'] },
+      { k: '反比例の式を求め、y の値を求められる', ref: ['m1-4-5/value'], core: true, go: ['u:m1-4-5', 'sum:s10'] },
+      { k: '反比例のグラフから式を求められる', ref: ['m1-4-6/read'], core: false, go: ['u:m1-4-6', 'zk:z451'] },
+      { k: '1次関数の変化の割合を求められる', ref: ['m2-3-2/rate'], core: false, go: ['u:m2-3-2', 'sum:s11'] },
+      { k: 'グラフから直線の式を読みとれる', ref: ['m2-3-3/read'], core: true, go: ['u:m2-3-3', 'zk:z470'] },
+      { k: '2点を通る直線の式を求められる', ref: ['m2-3-5/two'], core: true, go: ['u:m2-3-5', 'sum:s11'] },
+      { k: '平行な直線の式を求められる', ref: ['m2-3-5/w_par'], core: true, go: ['u:m2-3-5', 'sum:s12'] },
+      { k: '1次関数の y の変域を求められる', ref: ['m2-3-4/range'], core: false, go: ['u:m2-3-4', 'sum:s12'] },
+      { k: '2直線の交点の座標を計算で求められる', ref: ['m2-3-7/calc'], core: true, go: ['u:m2-3-7', 'zk:z470'] },
+      { k: '2直線と y 軸でできる三角形の面積を求められる', ref: ['m2-3-7/area'], core: false, go: ['u:m2-3-7', 'zk:z480'] },
+      { k: '道のりと時間のグラフを読みとれる', ref: ['m2-3-8/travel'], core: false, go: ['u:m2-3-8', 'zk:z500'] },
+      { k: '図形の辺上を動く点と面積の問題を解ける', ref: ['m2-3-9/when'], core: true, go: ['u:m2-3-9', 'bk:b12'] },
+      { k: 'y=ax² のグラフから a や y の値を求められる', ref: ['m3-4-2/reada'], core: false, go: ['u:m3-4-2', 'zk:z520'] },
+      { k: 'y=ax² の y の変域を求められる', ref: ['m3-4-3/rng'], core: true, go: ['u:m3-4-3', 'zk:z521'] },
+      { k: 'y=ax² の変化の割合を求められる', ref: ['m3-4-4/rate'], core: true, go: ['u:m3-4-4', 'zk:z523'] },
+      { k: 'y=ax² を利用して問題を解ける（落下）', ref: ['m3-4-5/fall'], core: false, go: ['u:m3-4-5', 'sum:s13'] },
+      { k: '放物線と直線の交点の座標を求められる', ref: ['m3-4-7/cross'], ans: 2, core: true, go: ['u:m3-4-7', 'zk:z535'] },
+      { k: '放物線と直線でできる三角形の面積を求められる', ref: ['m3-4-7/area'], core: true, go: ['u:m3-4-7', 'bk:b20'] },
+      { k: '座標平面上の2点間の距離を求められる', ref: ['m3-7-4/dist'], core: false, go: ['u:m3-7-4', 'zk:z331'] },
+    ] },
+    { field: '平面図形', time: 40, items: [
+      { k: '基本の作図ができる（垂直二等分線・角の二等分線・垂線・接線）', ref: ['m1-5-3/draw', 'm1-5-3/draw_2', 'm1-5-3/draw_3', 'm3-6-3/w_tan'], pick: true, core: true, go: ['u:m1-5-3', 'bk:b56'] },
+      { k: 'おうぎ形の弧の長さと面積を求められる', ref: ['m1-5-6/sector'], ans: ['弧の長さ', '面積'], core: true, go: ['u:m1-5-6', 'sum:s17'] },
+      { k: '平行線と角（錯角・同位角）で角を求められる', ref: ['m2-4-1/zig'], core: false, go: ['u:m2-4-1', 'zk:z102'] },
+      { k: '多角形の内角の和・外角を使える', ref: ['m2-4-2/sum'], core: false, go: ['u:m2-4-2', 'zk:z122'] },
+      { k: '三角形の合同条件を判断できる', ref: ['m2-4-3/joken'], core: false, go: ['u:m2-4-3', 'sum:s19'] },
+      { k: '三角形の合同を証明できる（証明を書く）', ref: ['m2-4-5/full', 'm2-4-5/full_2', 'm2-4-5/full_3', 'm2-4-5/full_4', 'm2-4-5/full_5', 'm2-4-5/full_6', 'm2-4-5/full_8', 'm2-4-5/full_9'], pick: true, write: 7, core: true, go: ['u:m2-4-5', 'zk:z101'] },
+      { k: '二等辺三角形の性質で角を求められる', ref: ['m2-5-1/base'], core: false, go: ['u:m2-5-1', 'zk:z150'] },
+      { k: '平行四辺形の性質で角を求められる', ref: ['m2-5-3/angle'], core: false, go: ['u:m2-5-3', 'zk:z171'] },
+      { k: '三角形の相似を証明できる（証明を書く）', ref: ['m3-5-3/write', 'm3-5-3/write_2', 'm3-5-3/write_3', 'm3-5-3/write_4'], pick: true, write: 7, core: true, go: ['u:m3-5-3', 'zk:z260'] },
+      { k: '相似を使って辺の長さを求められる', ref: ['m3-5-3/apply_4'], core: true, go: ['u:m3-5-3', 'zk:z271'] },
+      { k: '平行線と線分の比で長さを求められる（三角形）', ref: ['m3-5-4/whole'], ans: ['$x$', '$y$'], core: true, go: ['u:m3-5-4', 'zk:z230'] },
+      { k: '3本の平行線と線分の比を使える', ref: ['m3-5-5/three'], core: false, go: ['u:m3-5-5', 'zk:z245'] },
+      { k: '中点連結定理を使える', ref: ['m3-5-7/mn'], ans: ['$x$', '$∠y$'], core: false, go: ['u:m3-5-7', 'zk:z200'] },
+      { k: '相似な図形の面積の比を使える', ref: ['m3-5-8/pq'], ans: ['$P$', '$Q$'], core: true, go: ['u:m3-5-8', 'zk:z300'] },
+      { k: '円周角と中心角の関係で角を求められる', ref: ['m3-6-1/half'], core: true, go: ['u:m3-6-1', 'zk:z350'] },
+      { k: '円周角を使って三角形の相似を証明できる（証明を書く）', ref: ['m3-6-3/write_2', 'm3-6-3/write'], pick: true, write: 7, core: true, go: ['u:m3-6-3', 'zk:z380'] },
+      { k: '三平方の定理で辺の長さを求められる', ref: ['m3-7-1/hyp'], core: true, go: ['u:m3-7-1', 'zk:z321'] },
+      { k: '特別な直角三角形の辺の比を使える', ref: ['m3-7-2/r30'], ans: ['$x$', '$y$'], core: false, go: ['u:m3-7-2', 'zk:z323'] },
+      { k: '三平方の定理を円の弦に使える', ref: ['m3-7-3/chord'], core: false, go: ['u:m3-7-3', 'zk:z333'] },
+    ] },
+    { field: '空間図形', time: 35, items: [
+      { k: '角柱・角錐の面・辺・頂点の数がわかる', ref: ['m1-6-1/count'], core: false, go: ['u:m1-6-1', 'sum:s16'] },
+      { k: '投影図から立体がわかる', ref: ['m1-6-1/proj'], core: false, go: ['u:m1-6-1', 'sum:s16'] },
+      { k: '立方体の展開図で重なる点・辺がわかる', ref: ['m1-6-1/cubeNet'], core: false, go: ['u:m1-6-1', 'sum:s16'] },
+      { k: 'ねじれの位置にある辺がわかる', ref: ['m1-6-2/ll'], only: /ねじれ/, core: true, go: ['u:m1-6-2', 'sum:s16'] },
+      { k: '平面と垂直・平行な辺がわかる', ref: ['m1-6-2/lp'], core: false, go: ['u:m1-6-2', 'sum:s16'] },
+      { k: '回転体の形がわかる', ref: ['m1-6-3/rot'], core: false, go: ['u:m1-6-3', 'sum:s16'] },
+      { k: '立体を平面で切った切り口の形がわかる', ref: ['m1-6-3/cut'], core: false, go: ['u:m1-6-3', 'sum:s16'] },
+      { k: '角柱の体積を求められる', ref: ['m1-6-4/prism'], core: false, go: ['u:m1-6-4', 'sum:s18'] },
+      { k: '円柱の体積を求められる', ref: ['m1-6-4/prism_2'], core: false, go: ['u:m1-6-4', 'sum:s18'] },
+      { k: '円柱の側面積・表面積を求められる', ref: ['m1-6-5/cylS'], ans: ['側面積', '表面積'], core: true, go: ['u:m1-6-5', 'sum:s18'] },
+      { k: '円錐の体積を求められる', ref: ['m1-6-4/pyr_2'], core: true, go: ['u:m1-6-4', 'sum:s18'] },
+      { k: '球の体積を求められる', ref: ['m1-6-4/sphere'], core: false, go: ['u:m1-6-4', 'sum:s18'] },
+      { k: '球の表面積を求められる', ref: ['m1-6-5/sphS'], core: false, go: ['u:m1-6-5', 'sum:s18'] },
+      { k: '回転体の体積を求められる', ref: ['m1-6-4/rotV'], core: true, go: ['u:m1-6-4', 'bk:b59'] },
+      { k: '円錐の側面積・表面積を求められる', ref: ['m1-6-5/coneS'], core: true, go: ['u:m1-6-5', 'bk:b58'] },
+      { k: '相似な立体の体積の比を使える', ref: ['m3-5-9/vol'], core: false, go: ['u:m3-5-9', 'bk:b45'] },
+      { k: '直方体の対角線の長さを求められる', ref: ['m3-7-5/cuboid'], core: false, go: ['u:m3-7-5', 'zk:z334'] },
+      { k: '正四角錐の高さと体積を求められる', ref: ['m3-7-5/pyr'], ans: ['高さ', '体積'], core: true, go: ['u:m3-7-5', 'bk:b47'] },
+      { k: '円錐の高さと体積を求められる', ref: ['m3-7-5/cone'], ans: ['高さ', '体積'], core: false, go: ['u:m3-7-5', 'zk:z335'] },
+      { k: '立体の表面にかけた糸の最短の長さを求められる', ref: ['m3-7-5/string'], core: true, go: ['u:m3-7-5', 'bk:b72'] },
+      { k: '球の切り口の円の半径を求められる', ref: ['m3-7-5/sphere'], core: false, go: ['u:m3-7-5', 'sum:s26'] },
+    ] },
+    { field: '確率・データの活用', short: '確率・データ', time: 30, items: [
+      { k: '累積度数を使って「〜未満」の人数を求められる', ref: ['m1-7-1/less'], core: false, go: ['u:m1-7-1', 'bk:b50'] },
+      { k: 'ヒストグラムを読みとれる', ref: ['m1-7-1/histRead'], core: false, go: ['u:m1-7-1', 'bk:b51'] },
+      { k: '平均値・中央値・最頻値を求められる', ref: ['m1-7-2/all'], ans: ['平均値', '中央値', '最頻値'], core: true, go: ['u:m1-7-2', 'sum:s28'] },
+      { k: '相対度数・累積相対度数の表をうめられる', ref: ['m1-7-3/table'], core: true, go: ['u:m1-7-3', 'sum:s28'] },
+      { k: '相対度数を確率として使える', ref: ['m1-7-4/prob'], core: false, go: ['u:m1-7-4', 'sum:s28'] },
+      { k: '並べ方・選び方の場合の数を求められる', ref: ['m2-6-2/count'], core: true, go: ['u:m2-6-2', 'sum:s27'] },
+      { k: '箱から玉を1個取り出すときの確率を求められる', ref: ['m2-6-1/balls'], only: /玉/, notA: /^(0|1)$/, core: false, go: ['u:m2-6-1', 'sum:s27'] },
+      { k: '2つのさいころの目の和の確率を求められる', ref: ['m2-6-2/dice2'], only: /和が/, not: /ならない/, notA: /^0$/, core: true, go: ['u:m2-6-2', 'bk:b36'] },
+      { k: '2つのさいころで「〜が出ない」「少なくとも」の確率を求められる', ref: ['m2-6-2/dice2_3'], only: /まったく出ない|少なくとも一方は[1-5]以上/, core: false, go: ['u:m2-6-2', 'bk:b37'] },
+      { k: '同時に2つ取り出すときの確率を求められる', ref: ['m2-6-2/pick_2'], core: true, go: ['u:m2-6-2', 'sum:s27'] },
+      { k: 'カードで整数をつくるときの確率を求められる', ref: ['m2-6-2/cards'], core: false, go: ['u:m2-6-2', 'sum:s27'] },
+      { k: '硬貨を投げるときの確率を求められる', ref: ['m2-6-2/coin'], core: false, go: ['u:m2-6-2', 'sum:s27'] },
+      { k: '四分位数を求められる', ref: ['m2-7-1/q'], ans: ['第1四分位数', '第2四分位数', '第3四分位数'], core: true, go: ['u:m2-7-1', 'sum:s28'] },
+      { k: '箱ひげ図から値を読みとれる', ref: ['m2-7-1/read'], core: false, go: ['u:m2-7-1', 'sum:s28'] },
+      { k: '箱ひげ図から正しいかどうか判断できる', ref: ['m2-7-1/tf'], core: true, go: ['u:m2-7-1', 'bk:b52'] },
+      { k: '全数調査と標本調査を区別できる', ref: ['m3-8-1/which'], core: false, go: ['u:m3-8-1'] },
+      { k: '標本調査から全体の数を推定できる', ref: ['m3-8-3/balls'], core: true, go: ['u:m3-8-3', 'bk:b54'] },
+    ] },
+  ];
+  U.dgFields = DG;
+  const mk = (o) => U.bk(Object.assign({ no: 0, grade: 1, dg: true, make() { throw new Error('入試の診断テストは make を使わない'); } }, o));
+  mk({ id: 'dg0', field: '入試の診断', title: '全範囲（60分）', short: '全範囲', time: 60, parts: DG.map(d => ({ field: d.field, items: d.items.filter(x => x.core) })) });
+  DG.forEach((d, i) => mk({ id: 'dg' + (i + 1), field: '入試の診断', title: `${d.field}（${d.time}分）`, short: d.short || d.field, time: d.time, parts: [{ field: d.field, items: d.items }] }));
+  // 起動時に、参照している型・練習するプリントがすべてあるか確かめる（ないものは console.warn）
+  const check = () => {
+    DG.forEach(d => d.items.forEach(it => {
+      it.ref.forEach(ref => { const [tid, gid] = ref.split('/'); const t = U.topics.find(x => x.id === tid); if (!t || !t.gens.some(g => g.id === gid)) console.warn('入試の診断テスト: 型がない ' + ref + '（' + it.k + '）'); });
+      it.go.forEach(c => { if (!window.dgGo || !window.dgGo(c)) console.warn('入試の診断テスト: 練習するプリントがない ' + c + '（' + it.k + '）'); });
+    }));
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check); else setTimeout(check, 0);
+})();
+
+</script>
+<script>
 /* まとめ（3年間の総復習）テーマ 1〜14：数と式・関数
    仕様は SUMMARY.md。s01 はお手本 */
 (function () {
@@ -76841,14 +77208,15 @@ window.fitSheets = function (root) {
   function newSeed() { return Math.floor(Math.random() * 900000) + 100000; }
 
   function chaptersOf(g) {
-    if (st.mode === 'bk') { const F = ['数と式・方程式', '関数', '平面図形', '空間図形', '確率・データの活用']; return F.map((f, i) => ({ ch: i + 1, title: f, topics: U.bunkai.filter(b => b.field === f && b.grade <= g && !b.kc && !b.miss) })).filter(c => c.topics.length); } // 分解 = 入試形式の問題の解き方を学ぶ（基礎力チェック・ミスをなくそうは「まとめ」へ）
+    if (st.mode === 'bk') { const F = ['数と式・方程式', '関数', '平面図形', '空間図形', '確率・データの活用']; return F.map((f, i) => ({ ch: i + 1, title: f, topics: U.bunkai.filter(b => b.field === f && b.grade <= g && !b.kc && !b.miss && !b.dg) })).filter(c => c.topics.length); } // 分解 = 入試形式の問題の解き方を学ぶ（基礎力チェック・ミスをなくそう・入試の診断テストは「まとめ」へ）
     if (st.mode === 'ny') return [{ ch: 1, title: `入試形式の大問（中${g}までの範囲）`, topics: nyList(g) }];
     if (st.mode === 'zk') { const L = (U.zkList || []).filter(z => z.grade <= g); const chs = [...new Set(L.map(z => z.ch))]; return chs.map((c, i) => ({ ch: i + 1, title: c, topics: L.filter(z => z.ch === c).map(z => ({ id: z.id, title: `${z.no}. ${z.title}` })) })); }
     if (st.mode === 'kk') { const K = U.kyu || []; const T_ = (k) => ({ id: k.id, title: k.train ? k.title.replace('まとめテスト　', '') : k.title }); return [['小学校の復習', k => !k.train && k.area === '小学校の復習'], ['中1', k => !k.train && k.area === '中1'], ['中2', k => !k.train && k.area === '中2'], ['中3', k => !k.train && k.area === '中3'], ['まとめテスト（20問・100点）', k => k.train]].map(([title, f], i) => ({ ch: i + 1, title, topics: K.filter(f).map(T_).concat(i === 4 ? [{ id: 'kk-rec', title: '学習記録表（1枚）', kc: true }] : []) })); }
     if (st.mode === 'sum') { const BF = ['数と式・方程式', '関数', '平面図形', '空間図形', '確率・データの活用']; const th = FIELDS.map(f => ({ title: f, topics: U.themes.filter(x => x.field === f) })).filter(c => c.topics.length);
       const kc = [{ title: '基礎力チェック（分野別）', topics: U.bunkai.filter(b => b.kc) }];
+      const dg = [{ title: '入試の診断テスト（できる・できないを確認）', topics: U.bunkai.filter(b => b.dg) }];
       const ms = BF.map(f => ({ title: `ミスをなくそう：${f}`, topics: U.bunkai.filter(b => b.miss && b.field === f) }));
-      return th.concat(kc, ms).filter(c => c.topics.length).map((c, i) => Object.assign(c, { ch: i + 1 })); }
+      return th.concat(kc, dg, ms).filter(c => c.topics.length).map((c, i) => Object.assign(c, { ch: i + 1 })); }
     const chs = {};
     U.byGrade(g).filter(t => st.mode === 'why' ? !!t.why : st.mode === 'learn' ? (!t.whyOnly && !t.drill) : !t.whyOnly).forEach(t => { (chs[t.ch] = chs[t.ch] || []).push(t); });
     return Object.keys(chs).map(Number).sort((a, b) => a - b).map(ch => ({ ch, title: (U.chapters[g + '-' + ch] || {}).title || '', topics: chs[ch] }));
@@ -76865,7 +77233,7 @@ window.fitSheets = function (root) {
       for (const t of c.topics) {
         const on = !!st.sel[t.id]; const n = on ? st.sel[t.id] : md.def;
         const secLine = t.sec && t.sec !== lastSec ? `<span class="sec">${t.sec}</span>` : ''; lastSec = t.sec;
-        h += `<div class="trow"><input type="checkbox" id="t-${t.id}" data-t="${t.id}" ${on ? 'checked' : ''}><label for="t-${t.id}">${secLine}${st.mode === 'sum' && t.no && !t.kc && !t.miss ? t.no + '. ' : ''}${t.title}${st.mode === 'sum' && t.miss ? `<small style="color:var(--ui-sub)">　中${t.grade}</small>` : ''}</label>${st.mode === 'why' || t.kc || t.miss ? '<span></span>' : `<input type="number" min="1" max="30" value="${n}" data-n="${t.id}" aria-label="${t.title}の${md.cnt}" ${on ? '' : 'disabled'}>`}`;
+        h += `<div class="trow"><input type="checkbox" id="t-${t.id}" data-t="${t.id}" ${on ? 'checked' : ''}><label for="t-${t.id}">${secLine}${st.mode === 'sum' && t.no && !t.kc && !t.miss && !t.dg ? t.no + '. ' : ''}${t.title}${st.mode === 'sum' && t.miss ? `<small style="color:var(--ui-sub)">　中${t.grade}</small>` : ''}</label>${st.mode === 'why' || t.kc || t.miss || t.dg ? '<span></span>' : `<input type="number" min="1" max="30" value="${n}" data-n="${t.id}" aria-label="${t.title}の${md.cnt}" ${on ? '' : 'disabled'}>`}`;
         if (on && t.gens && t.gens.length && st.mode !== 'why') {
           const off = st.off[t.id] || []; const ex = st.open['t:' + t.id];
           h += `<div class="more"><button class="typesbtn" data-x="${t.id}">${ex ? '▾ 問題の型をとじる' : `▸ 問題の型を選ぶ（${t.gens.length - off.filter(x => t.gens.some(g => g.id === x)).length}/${t.gens.length}）`}</button></div>`;
@@ -76894,9 +77262,9 @@ window.fitSheets = function (root) {
 
   function cfg() {
     const items = [];
-    if (st.mode === 'bk') U.bunkai.forEach(b => { if (st.sel[b.id] && b.grade <= st.grade && !b.kc && !b.miss) items.push({ id: b.id, n: Math.min(3, +st.sel[b.id] || 1) }); });
+    if (st.mode === 'bk') U.bunkai.forEach(b => { if (st.sel[b.id] && b.grade <= st.grade && !b.kc && !b.miss && !b.dg) items.push({ id: b.id, n: Math.min(3, +st.sel[b.id] || 1) }); });
     else if (st.mode === 'ny') nyList(st.grade).forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: Math.min(5, +st.sel[t.id] || 1) }); });
-    else if (st.mode === 'sum') { U.themes.forEach(th => { if (st.sel[th.id]) items.push({ id: th.id, n: +st.sel[th.id] || MODES.sum.def }); }); U.bunkai.forEach(b => { if ((b.kc || b.miss) && st.sel[b.id]) items.push({ id: b.id, n: 1 }); }); }
+    else if (st.mode === 'sum') { U.themes.forEach(th => { if (st.sel[th.id]) items.push({ id: th.id, n: +st.sel[th.id] || MODES.sum.def }); }); U.bunkai.forEach(b => { if ((b.kc || b.miss || b.dg) && st.sel[b.id]) items.push({ id: b.id, n: 1 }); }); }
     else if (st.mode === 'zk') { chaptersOf(st.grade).forEach(c => c.topics.forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: Math.min(4, +st.sel[t.id] || 1) }); })); }
     else if (st.mode === 'kk') { chaptersOf(0).forEach(c => c.topics.forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: t.id === 'kk-rec' ? 1 : Math.min(16, +st.sel[t.id] || MODES.kk.def) }); })); }
     else U.topics.forEach(t => { if (st.sel[t.id] && (st.mode === 'why' ? t.why : !t.whyOnly)) items.push({ id: t.id, n: +st.sel[t.id] || MODES[st.mode].def }); if (st.mode === 'prac' || st.mode === 'test' || st.mode === 'ls') (t.subs || []).forEach(u => { const k = t.id + '#' + u.id; if (st.sel[k]) items.push({ id: k, n: +st.sel[k] }); }); });
@@ -76908,7 +77276,7 @@ window.fitSheets = function (root) {
     const c = cfg(); const pv = $('#preview');
     $('#seed').value = st.seed;
     const nT = c.items.length; const nQ = c.items.reduce((s, x) => s + x.n, 0);
-    $('#sum').innerHTML = nT ? (st.mode === 'why' ? `<b>なるほど</b>　${nT}単元` : st.mode === 'sum' ? (() => { const th = c.items.filter(x => U.themes.some(t => t.id === x.id)); const ex = c.items.length - th.length; return `<b>まとめ</b>　${th.length ? `${th.length}テーマ・確認問題 ${th.reduce((a, x) => a + x.n, 0)}問` : ''}${th.length && ex ? '　' : ''}${ex ? `基礎力チェック・ミスをなくそう ${ex}題` : ''}`; })() : st.mode === 'bk' ? `<b>分解</b>　${nT}題` : st.mode === 'zk' ? `<b>図形</b>　${nT}題・演習 ${nQ}枚` : st.mode === 'kk' ? `<b>計算</b>　${nT}種類・${nQ}回分` : st.mode === 'ny' ? `<b>入試</b>　中${st.grade}までの範囲・${c.items.map(x => (nyList(st.grade).find(t => t.id === x.id) || {}).title + ' ' + x.n + (x.id === 'ny-moshi' ? 'セット' : '題')).join('、')}` : `<b>${MODES[st.mode].label}</b>　${nT}単元・${MODES[st.mode].cnt} ${nQ}問`) : '左で単元を選んでください';
+    $('#sum').innerHTML = nT ? (st.mode === 'why' ? `<b>なるほど</b>　${nT}単元` : st.mode === 'sum' ? (() => { const th = c.items.filter(x => U.themes.some(t => t.id === x.id)); const nd = c.items.filter(x => U.bunkai.some(b => b.dg && b.id === x.id)).length; const ex = c.items.length - th.length - nd; return `<b>まとめ</b>　${[th.length ? `${th.length}テーマ・確認問題 ${th.reduce((a, x) => a + x.n, 0)}問` : '', nd ? `入試の診断テスト ${nd}回分` : '', ex ? `基礎力チェック・ミスをなくそう ${ex}題` : ''].filter(Boolean).join('　')}`; })() : st.mode === 'bk' ? `<b>分解</b>　${nT}題` : st.mode === 'zk' ? `<b>図形</b>　${nT}題・演習 ${nQ}枚` : st.mode === 'kk' ? `<b>計算</b>　${nT}種類・${nQ}回分` : st.mode === 'ny' ? `<b>入試</b>　中${st.grade}までの範囲・${c.items.map(x => (nyList(st.grade).find(t => t.id === x.id) || {}).title + ' ' + x.n + (x.id === 'ny-moshi' ? 'セット' : '題')).join('、')}` : `<b>${MODES[st.mode].label}</b>　${nT}単元・${MODES[st.mode].cnt} ${nQ}問`) : '左で単元を選んでください';
     if (!nT) { pv.innerHTML = `<div class="empty"><b>使い方</b><br>① 上でプリントの種類を選ぶ<br>（なるほど＝しくみ／わかる＝解き方／とく＝練習／テスト＝定期テスト形式／まとめ＝3年間の総復習）<br>② 左のリストで単元にチェック、右の数字で問題数を決める<br>③ 「印刷」で、問題と解答をまとめて印刷<br><br>「別の問題にする」を押すと数字が変わった新しいプリントになります。</div>`; return; }
     let sheets;
     try { sheets = compose(c); } catch (e) { pv.innerHTML = `<div class="empty">プリントを作れませんでした：${e.message}</div>`; console.error(e); return; }
