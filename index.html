@@ -1058,7 +1058,8 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
           let sc = boxes.reduce((n, q) => n + ovl(b, q), 0) + dots.reduce((n, q) => n + ovl(b, q), 0) + segHit(b) * 30 + (pos === (p.pos || 'ne') ? 0 : 6); if (b[0] < 0 || b[1] < 0 || b[2] > W || b[3] > H) sc += 400;
           if (!best || sc < best.sc) best = { sc, tx, ty, a: dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle', b }; if (sc === 0) break; }
         s += S.text(best.tx, best.ty, p.label, { fs: 13, a: best.a }); boxes.push(best.b); }
-      if (o.extra) s += o.extra({ X, Y, u });
+      /* extra の中の塗りの図形（三角形の色など）は、方眼・軸・グラフの下にしく（軸や目もりをかくさないように） */
+      if (o.extra) { const fills = []; const ex = o.extra({ X, Y, u }).replace(/<(polygon|rect|path)\b[^>]*\bfill="(?!none|#222|#111|#000|#333|#fff\b|#ffffff|white|#d0312d|#1f4e8c)[^"]+"[^>]*?(?:\/>|>\s*<\/\1>)/g, (m) => { fills.push(m); return ''; }); s = fills.join('') + s + ex; }
       return S.svg(W, H, s, { wmm: WMM || r2(W * 0.24) });
     },
 
