@@ -566,6 +566,29 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
 .sheet.pvs{width:auto;max-width:210mm;min-height:0;padding:7mm 9mm;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .sheet.pvs.ansheet::before{display:none}
 @media print{.browse{display:none!important}#preview[hidden]{display:block!important}.picknote,#pickbtn{display:none!important}}
+/* 入試の誘導（ヒント／考え方の穴うめ） */
+.nyd .nyh,.nyd .nyy{display:none}
+.nyd[data-yd="hint"] .nyh{display:flex}
+.nyd[data-yd="fill"] .nyy{display:block}
+.nyh{gap:2mm;align-items:baseline;margin:1mm 0 0 2.2em;font-family:var(--f-body);font-size:9pt;line-height:1.6;break-inside:avoid}
+.nyh-l{flex:0 0 auto;font-size:7.5pt;font-weight:700;color:#fff;background:#5b6b80;border-radius:1mm;padding:0 1.5mm}
+.nyy{margin:1.2mm 0 0 2.2em;border:1px dashed #9fb0c8;border-radius:1.5mm;padding:1.2mm 2.5mm 1.5mm;font-family:var(--f-body);font-size:9pt;line-height:2.05;break-inside:avoid}
+.nyy-h{font-size:7.5pt;font-weight:700;color:#4a5a70;line-height:1.5;margin-bottom:.3mm}
+.yb{display:inline-flex;align-items:baseline;gap:.6mm;min-width:12mm;border:1px solid var(--ink);border-radius:.8mm;padding:0 1.2mm;margin:0 .6mm;line-height:1.35;vertical-align:baseline;background:#fff}
+.ybl{font-size:7pt;color:var(--sub)}
+.yba{visibility:hidden}
+.ansheet .yba{visibility:visible;color:var(--red);font-weight:700}
+.ansheet .yb{border-color:var(--red)}
+.ca-y{display:block;color:var(--ink);font-weight:400;font-size:.92em}
+.ca-y b{color:var(--red);font-weight:700;margin-right:2.4mm}
+.ca-ya{color:var(--sub);font-weight:400;font-size:.8em;margin-right:1mm}
+.ydseg{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+.ydseg > span{font-size:12px;color:var(--ui-sub);margin-right:2px}
+.ydseg button{min-height:36px;min-width:44px;border:1px solid var(--ui-line);border-radius:7px;background:var(--ui-panel);color:var(--ui-fg);font:inherit;font-size:13px;cursor:pointer;padding:2px 8px}
+.ydseg button[aria-pressed="true"]{background:var(--ui-acc);color:var(--ui-acc-fg);border-color:var(--ui-acc);font-weight:700}
+.edtools .ydseg button{min-height:34px}
+.edtools .ydseg button[aria-pressed="true"]{background:#1f3d6b;color:#fff}
+.tray .ydseg{flex-basis:100%;padding-left:2.4em}
 /* ミスをなくそう: 1枚に収めるための詰め */
 .sheet.miss .sh-head{margin-bottom:3mm;padding-bottom:2mm}
 .sheet.miss .bkp{line-height:1.75;padding:2.5mm 4mm 2mm;margin-bottom:2.5mm}
@@ -818,6 +841,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       <div class="opts">
         <div><div class="lbl">むずかしさ</div><select id="lv"><option value="1">基本だけ</option><option value="2">標準まで</option><option value="3">応用まで</option></select></div>
         <div><div class="lbl">解答</div><select id="answers"><option value="sep">問題＋解答</option><option value="none">問題だけ</option><option value="only">解答だけ</option></select></div>
+        <div id="ydWrap" style="grid-column:1/-1" hidden><div class="lbl">誘導（入試）</div><select id="yudo"><option value="none">なし（今まで）</option><option value="hint">ヒントつき</option><option value="fill">誘導つき（考え方の穴うめ）</option></select></div>
         <div id="afWrap" style="grid-column:1/-1" hidden><div class="lbl">解答の形</div><select id="ansForm"><option value="brief">答え＋解き方（問題文なし）</option><option value="only">答えだけ（いちばん少ない）</option><option value="full">問題つき（今までどおり）</option></select></div>
       </div>
       <label class="chk"><input type="checkbox" id="hint">練習プリントにヒントをのせる</label>
@@ -1748,11 +1772,109 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     return list;
   }
   function nyFigOut(s) { const m = (s.match(/<svg/g) || []).length === 1 ? s.match(/<svg[\s\S]*?<\/svg>/) : null; return m ? `<div class="qfig">${m[0]}</div>` + s.replace(m[0], '') : s; }
-  function nyDaimon(p, no) {
+  /* ---------- 入試の誘導（ヒント／考え方の穴うめ）: 小問の解説 ex からつくる ----------
+     穴うめ: ex の行から最後の「よって，答えは…」を除き、問題文（lead・q・図）に出てこない数（途中で計算して出す数・分数）を （ア）（イ）… の空らんに。
+     1小問 1〜5個（多いときは後ろのほうから。「＝」のすぐあとの数＝計算の結果を先に）。答え（a）の数は「＝」のあとや問題文にない所では必ず空らんにし、答えがそのまま残る行はのせない。
+     ヒント: ex の最初の文（方針）。途中の数は □ に。 */
+  const YKANA = 'あいうえおかきくけこさしすせそたちつてと'; // 選択肢のア〜エや図の①②とぶつからないように、空らんの記号はひらがな
+  const ytext = (h) => String(h == null ? '' : h).replace(/<svg[\s\S]*?<\/svg>/g, m => ' ' + m.replace(/<[^>]+>/g, ' ') + ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+  const ynorm = (h) => String(h == null ? '' : h).replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').replace(/[\s　]+/g, '').replace(/[，,]/g, ',').replace(/[−-]/g, '−');
+  const YCJK = '0-9A-Za-z.\\u3040-\\u30ff\\u3400-\\u9fff';
+  const YTOK = new RegExp(`(^|[^${YCJK}])(−?)(\\d+(?:\\.\\d+)?(?=$|[^${YCJK}])|\\uE000[\\uE100-\\uE8FF]\\uE001)`, 'g');
+  const YFR = /<span class="fr"><span class="nu">([^<]*(?:<(?!\/?span)[^>]*>[^<]*)*)<\/span><span class="de">([^<]*(?:<(?!\/?span)[^>]*>[^<]*)*)<\/span><\/span>/g;
+  const YEND = /^\s*(cm²|cm³|cm2|cm3|cm|m²|m|°|度|通り|個|人|円|分|秒|g|kg|L|mL|%|倍|番目|枚|本|回|点|[（(][^)）]*[)）])?\s*[，,。]?\s*$/; // 行の終わり（単位だけ）
+  const frKey = (nu, de) => 'F' + ynorm(nu) + '/' + ynorm(de);
+  /** HTML を [ {tag} | {text, skip} ] に分ける。上つき・下つき・平方根・表・図の中の数は空らんにしない */
+  function ySplit(html) {
+    const parts = String(html).split(/(<[^>]+>)/); const out = []; const stack = []; let svg = 0;
+    for (const s of parts) {
+      if (!s) continue;
+      if (s[0] === '<') {
+        const m = s.match(/^<\/?([a-zA-Z0-9]+)/); const tg = m ? m[1].toLowerCase() : '';
+        if (tg === 'svg') svg += s[1] === '/' ? -1 : 1;
+        if (!svg && !/\/>$/.test(s) && !['br', 'img', 'hr', 'input'].includes(tg)) {
+          if (s[1] === '/') { const i = stack.map(x => x.t).lastIndexOf(tg); if (i >= 0) stack.splice(i); }
+          else stack.push({ t: tg, skip: ['sup', 'sub', 'table'].includes(tg) || /class="(fr|nu|de|sqrt|rt|rad)\b/.test(s) });
+        }
+        out.push({ tag: s }); continue;
+      }
+      out.push({ text: s, skip: svg > 0 || stack.some(x => x.skip) });
+    }
+    return out;
+  }
+  /** 数と分数のかぎ（与えられた数の集まり） */
+  function yKeys(h) { const s = String(h == null ? '' : h); const k = new Set(ytext(s.replace(YFR, ' ')).match(/\d+(?:\.\d+)?/g) || []); let m; YFR.lastIndex = 0; while ((m = YFR.exec(s))) k.add(frKey(m[1], m[2])); return k; }
+  /** 1行を、数・分数のしるし（tok）つきで分ける */
+  function yLine(l) {
+    const frs = []; const l2 = l.replace(YFR, (m, nu, de) => { if (!/^\d+(\.\d+)?$/.test(ynorm(nu)) || !/^\d+(\.\d+)?$/.test(ynorm(de))) return m; frs.push({ html: m, key: frKey(nu, de) }); return '' + String.fromCharCode(0xE100 + frs.length - 1) + ''; });
+    const sg = ySplit(l2); const toks = [];
+    sg.forEach((p, pi) => { if (p.tag || p.skip) return; YTOK.lastIndex = 0; let m;
+      while ((m = YTOK.exec(p.text))) { const start = m.index + m[1].length; const raw = m[2] + m[3]; const fr = m[3].charCodeAt(0) === 0xE000 ? frs[m[3].charCodeAt(1) - 0xE100] : null;
+        toks.push({ pi, start, len: raw.length, key: fr ? fr.key : m[3], val: m[2] + (fr ? fr.key : m[3]), html: m[2] + (fr ? fr.html : m[3]), res: /=\s*$/.test(p.text.slice(0, start)), cond: /^\s*(のとき|の場合|として|とする|とおく)/.test(p.text.slice(start + raw.length)) ? ((ytext(sg.slice(0, pi).map(x => x.tag ? '' : x.text).join('') + p.text.slice(0, start)).match(/([A-Za-z])\s*=\s*$/) || [])[1] || '') + '=' + m[3] : '', end: YEND.test(ytext(p.text.slice(start + raw.length) + sg.slice(pi + 1).map(x => x.tag ? (/^<br/i.test(x.tag) ? ' ' : '') : x.text).join(''))) });
+        YTOK.lastIndex = start + raw.length; } });
+    const restore = (s) => s.replace(/([-])/g, (m0, c) => frs[c.charCodeAt(0) - 0xE100].html);
+    return { sg, toks, restore };
+  }
+  function yudoItem(it, given, givenTxt) {
+    if (!it || !it.ex) return null;
+    const aN = ynorm(it.a); const aK = yKeys(it.a);
+    const CONST = new Set(['0', '1', '2', '90', '180', '360']);
+    let lines = String(it.ex).split(/<br\s*\/?>/i).map(x => x.trim()).filter(Boolean);
+    while (lines.length && /^(よって|したがって|以上より)/.test(ynorm(lines[lines.length - 1])) && /答え|答は/.test(ynorm(lines[lines.length - 1]))) lines.pop();
+    lines = lines.filter(l => !/<svg/i.test(l));
+    if (!lines.length) return null;
+    const L = lines.map(yLine);
+    // 空らんにするかどうか: 答えの数（＝のあと、または問題文にない） / 問題文にない途中の数（よく使う 0・1・2・90・180・360 は除く）
+    const isAns = (t) => aK.has(t.key) && (!given.has(t.key) || t.res && !(t.cond && givenTxt.includes(t.cond))); // 「x = 1 のとき」のような条件の数は、問題文にあればそのまま
+    const isMid = (t) => !given.has(t.key) && !CONST.has(t.key);
+    const all = L.flatMap((x, li) => x.toks.map(t => Object.assign({ li }, t)));
+    const must = [...new Set(all.filter(isAns).map(t => t.val))];
+    const others = []; for (let i = all.length - 1; i >= 0; i--) { const t = all[i]; if (!isMid(t) || must.includes(t.val) || others.some(o => o.val === t.val)) continue; others.push(t); }
+    others.sort((a, b) => (b.res - a.res)); // 計算の結果（＝のあと）を先に。それぞれ後ろのほうから
+    if (must.length > 5) return { fill: null, hint: null }; // 答えの数が多すぎる（書き出す問題など）は誘導をつけない
+    const pick = must.slice(); for (const t of others) { if (pick.length >= 5) break; pick.push(t.val); }
+    { const occN = () => all.filter(t => pick.includes(t.val) && (isAns(t) || isMid(t))).length; while (pick.length > must.length && occN() > 6) pick.pop(); } // 空らんは1小問に6個まで（記号が多くなりすぎないように）
+    const blank = (t) => pick.includes(t.val) && (isAns(t) || isMid(t));
+    // 組み立て（ラベルはあとで前から順に）
+    const out = L.map(x => x.restore(x.sg.map((p, pi) => { if (p.tag) return p.tag; if (p.skip) return p.text;
+      let s = '', at = 0; x.toks.filter(t => t.pi === pi && blank(t)).forEach(t => { s += p.text.slice(at, t.start) + `<span class="yb"><span class="ybl">?</span><span class="yba" data-v="${encodeURIComponent(t.val)}">${t.html}</span></span>`; at = t.start + t.len; });
+      return s + p.text.slice(at); }).join('')));
+    // 答えがそのまま残る行はのせない
+    const resid = (l) => ynorm(l.replace(/<span class="yb"><span class="ybl">[^<]*<\/span><span class="yba"[^>]*>[\s\S]*?<\/span><\/span>(?=[^<]|<(?!\/span))/g, '□'));
+    const hasA = (t) => { if (!aN) return false; if (/^[ァ-ヶ]$/.test(aN)) return new RegExp(`(^|[^ァ-ヶー])${aN}([^ァ-ヶー]|$)`).test(t); return (aN.length >= 2 || /\d/.test(aN)) && t.includes(aN); };
+    const keep = out.filter(l => !hasA(ynorm(yStrip(l))));
+    const order = []; keep.join('<br>').replace(/data-v="([^"]*)"/g, (m0, v) => { if (!order.includes(v)) order.push(v); return m0; });
+    // 空らんの記号は出てくる順に1つずつ（同じ数でも別の記号。たまたま同じ数の別のものが同じ記号にならないように）
+    const occ = []; const html = keep.join('<br>').replace(/<span class="ybl">\?<\/span><span class="yba" data-v="([^"]*)">/g, (m0, v) => { const lb = YKANA[occ.length] || String(occ.length + 1); occ.push({ lab: lb, val: decodeURIComponent(v), html: (all.find(t => encodeURIComponent(t.val) === v) || {}).html }); return `<span class="ybl">${lb}</span><span class="yba">`; });
+    const fill = occ.length ? { html, blanks: occ } : null;
+    void resid;
+    // ヒント: 最初の文。途中の数・答えの数は □
+    const h0 = lines[0]; let hs = h0; const cut = ytext(h0).length > 70 ? h0.search(/。/) : -1; if (cut > 0) hs = h0.slice(0, cut + 1);
+    const H = yLine(hs);
+    const hp = H.restore(H.sg.map((p, pi) => { if (p.tag) return p.tag; if (p.skip) return p.text; let s = '', at = 0; H.toks.filter(t => t.pi === pi && (isAns(t) || isMid(t))).forEach(t => { s += p.text.slice(at, t.start) + '□'; at = t.start + t.len; }); return s + p.text.slice(at); }).join(''));
+    let hint = hasA(ynorm(hp)) ? null : hp;
+    if (hint && !ynorm(hint).replace(/□/g, '')) hint = null;
+    return { fill, hint };
+  }
+  /** 空らん（yb）を □ にした文 */
+  function yStrip(h) { const d = String(h); let out = '', i = 0; const open = '<span class="yb">'; for (;;) { const j = d.indexOf(open, i); if (j < 0) { out += d.slice(i); break; } out += d.slice(i, j) + '□'; let k = j, depth = 0; const re = /<span\b|<\/span>/g; re.lastIndex = j; let m; while ((m = re.exec(d))) { depth += m[0] === '</span>' ? -1 : 1; if (!depth) { k = re.lastIndex; break; } } i = k > j ? k : d.length; } return out; }
+  /** 大問 p の小問ごとの誘導（p に覚えておく） */
+  function nyYudo(p) {
+    if (p.__yd) return p.__yd;
+    const base = [p.lead, p.fig].concat(p.items.map(it => it.q)).join(' ');
+    const yd = p.items.map(it => { const given = yKeys(p.field === 'shomon' ? [p.lead, it.q].join(' ') : base); try { return yudoItem(it, given, ynorm(p.field === 'shomon' ? [p.lead, it.q].join(' ') : base)); } catch (e) { return null; } });
+    Object.defineProperty(p, '__yd', { value: yd, enumerable: false, configurable: true });
+    return yd;
+  }
+  G.nyYudo = nyYudo; G.yStrip = yStrip;
+  const YD_MODES = ['none', 'hint', 'fill'];
+  /** 入試の大問。yd = 誘導（none なし / hint ヒント / fill 考え方の穴うめ）。ヒントと穴うめはいつも入れておき、data-yd で見せる方を決める（編集で切りかえられる） */
+  function nyDaimon(p, no, yd) {
     const N = G.NYUSHI;
-    const id = ++PID;
-    const items = p.items.map((it, j) => { const sp = N.spaceFor(it); return `<div class="nyi" data-pid="p${id}s${j}"><div class="nyq"><span class="qn">(${j + 1})</span><div class="qb">${nyFigOut((it.tag && p.field === 'shomon' ? `<span class="tag">${it.tag}</span>` : '') + it.q)}</div></div><div class="nysp ${sp}">${sp === 'none' ? '' : '<span>答</span>'}<div class="nya"><div>${it.a}</div>${it.ex ? `<div class="kx">${it.ex}</div>` : ''}</div></div></div>`; }).join('');
-    return `<section class="nyd nys" data-pid="p${id}" data-ny="${p.code}"><div class="nyd-h"><span class="bigno">${no}</span><span class="nyd-t">${p.title}</span><span class="nyd-code">No. ${p.code}</span></div>${p.lead ? `<div class="lead">${p.lead}</div>` : ''}${p.fig ? `<div class="figwrap">${p.fig}</div>` : ''}${items}</section>`;
+    const id = ++PID; let Y = []; try { Y = nyYudo(p); } catch (e) { Y = []; }
+    const ydHTML = (y) => !y ? '' : (y.hint ? `<div class="nyh"><span class="nyh-l">ヒント</span><span class="nyh-t">${y.hint}</span></div>` : '') + (y.fill ? `<div class="nyy"><div class="nyy-h">考え方（${y.fill.blanks.map(b => b.lab).join('・')} をうめよう）</div><div class="nyy-b">${y.fill.html}</div></div>` : '');
+    const items = p.items.map((it, j) => { const sp = N.spaceFor(it); return `<div class="nyi" data-pid="p${id}s${j}"><div class="nyq"><span class="qn">(${j + 1})</span><div class="qb">${nyFigOut((it.tag && p.field === 'shomon' ? `<span class="tag">${it.tag}</span>` : '') + it.q)}</div></div>${ydHTML(Y[j])}<div class="nysp ${sp}">${sp === 'none' ? '' : '<span>答</span>'}<div class="nya"><div>${it.a}</div>${it.ex ? `<div class="kx">${it.ex}</div>` : ''}</div></div></div>`; }).join('');
+    return `<section class="nyd nys" data-pid="p${id}" data-ny="${p.code}" data-yd="${YD_MODES.includes(yd) ? yd : 'none'}"><div class="nyd-h"><span class="bigno">${no}</span><span class="nyd-t">${p.title}</span><span class="nyd-code">No. ${p.code}</span></div>${p.lead ? `<div class="lead">${p.lead}</div>` : ''}${p.fig ? `<div class="figwrap">${p.fig}</div>` : ''}${items}</section>`;
   }
   /** 入試: 選んだ分野の大問（模試セットは5題1組） */
   function composeNyushi(cfg) {
@@ -1761,15 +1883,15 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     const R = makeRng(cfg.seed ^ 0x2a2a);
     const seedOf = () => R.int(0, 999999);
     let probs = []; const names = [];
-    const picked = !!(cfg.pick && cfg.pick.length);
-    if (picked) for (const x of cfg.pick) { const p = G.pickProb ? G.pickProb(x) : (() => { try { return N.generate(x.f, x.k, x.seed, x.grade, x.level); } catch (e) { return null; } })(); if (!p) continue; probs.push(p); const nm = N.FIELDS[x.f] && N.FIELDS[x.f].name; if (nm && !names.includes(nm)) names.push(nm); } // 「問題を見て選ぶ」で選んだ大問を、選んだ順にそのまま
+    const picked = !!(cfg.pick && cfg.pick.length); const ydOf = [];
+    if (picked) for (const x of cfg.pick) { const p = G.pickProb ? G.pickProb(x) : (() => { try { return N.generate(x.f, x.k, x.seed, x.grade, x.level); } catch (e) { return null; } })(); if (!p) continue; probs.push(p); ydOf[probs.length - 1] = x.yd; const nm = N.FIELDS[x.f] && N.FIELDS[x.f].name; if (nm && !names.includes(nm)) names.push(nm); } // 「問題を見て選ぶ」で選んだ大問を、選んだ順にそのまま
     for (const it of (picked ? [] : cfg.items)) {
       const f = it.id.replace(/^ny-/, '');
       if (f === 'moshi') {
         for (let k = 0; k < it.n; k++) { const sd = seedOf(); const ps = N.generateMoshi(sd, grade, level); const code = `M-${String(sd).padStart(6, '0')}-${grade}${level}`;
           let html = head({ cls: 'ny', label: '入試' }, '数学 模試', `${N.GRADE_NAME[grade]}・${NYLV[level]}`, { score: 100 });
-          html += `<div class="nymh"><span>制限時間 50分</span><span>大問 ${ps.length}題</span><span>セット番号 ${code}</span></div>` + ps.map((p, i) => nyDaimon(p, i + 1)).join('');
-          sheets.push({ cls: 'ny', html }); }
+          html += `<div class="nymh"><span>制限時間 50分</span><span>大問 ${ps.length}題</span><span>セット番号 ${code}</span></div>` + ps.map((p, i) => nyDaimon(p, i + 1, 'none')).join(''); /* 模試セットは本番と同じ形（ヒント・誘導はつけない） */
+          sheets.push({ cls: 'ny ny-moshi', html }); }
         continue;
       }
       if (!N.FIELDS[f]) continue;
@@ -1787,7 +1909,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
     }
     if (probs.length) {
       let html = head({ cls: 'ny', label: '入試' }, names.length <= 2 ? `数学 入試問題（${names.join('・')}）` : '数学 入試問題', `${picked ? '選んだ大問' : `${N.GRADE_NAME[grade]}・${NYLV[level]}`}　大問 ${probs.length}題${names.length > 2 ? '　' + names.join('・') : ''}`, { total: `${probs.reduce((a, p) => a + p.items.length, 0)}問` });
-      html += probs.map((p, i) => nyDaimon(p, i + 1)).join('');
+      html += probs.map((p, i) => nyDaimon(p, i + 1, ydOf[i] || cfg.yudo)).join('');
       sheets.unshift({ cls: 'ny', html });
     }
     return sheets;
@@ -2063,6 +2185,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
   }
   const zkExp = (P) => P.kind === 'proof' && /説明しなさい|説明せよ|理由を説明|わけを説明/.test(P.q || '') && !/証明しなさい/.test(P.q || '');
   function zkSum(P) { return P.a ? `<div class="zk-sum${P.kind === 'proof' ? ' pf' : ''}"><b>${P.kind === 'proof' ? (zkExp(P) ? '説明をまとめて書くと' : '証明をまとめて書くと') : '答え'}</b><div>${T(P.a)}</div></div>` : ''; }
+  const ZK_NOCOL = (h) => h.replace(/[（(](?:黄|黄色|水色|青|うすい青|ピンク)(?:の部分)?[）)]/g, '');
   function composeZukei(cfg) {
     const sheets = [], ans = [];
     for (const it of cfg.items) {
@@ -2076,7 +2199,7 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
       h += `<div class="bksec"><span class="bksec-t">解説</span><small>1段ずつ、図の色のついた所に注目</small></div>` + zkSteps(ex) + zkSum(ex);
       const pt = ex.point || z.point; const pn = (pt && pt.length ? bkPoint(pt) : '') + (ex.note ? `<div class="zk-note"><b>研究</b>　${T(ex.note)}</div>` : '');
       if (pn) h += `<div class="zk-pn${pt && pt.length && ex.note ? ' two' : ''}">${pn}</div>`;
-      sheets.push({ cls: 'prac zk zkex', html: h, fixed: 'q' });
+      if (+z.no >= 450) h = ZK_NOCOL(h).replace('図の色のついた所に注目', '図の印や名前に注目'); sheets.push({ cls: 'prac zk zkex', html: h, fixed: 'q' });
       const lv = cfg.maxLv || 2;
       for (let k = 0; k < (it.n || 1); k++) {
         const P = mk('P' + k);
@@ -2090,8 +2213,8 @@ u.mk{text-decoration:underline;text-decoration-color:#b8541e;text-decoration-thi
           s += `<div class="zk-work"><div class="zk-wl">${P.kind === 'proof' ? (zkExp(P) ? '［説明］' : '［証明］') : '［考え方と式］'}</div><div class="work" style="min-height:${z.workH || 70}mm"></div>${P.kind !== 'proof' ? '<div class="zk-al">答え　<span class="zk-bl wide"></span></div>' : ''}</div>`;
           if (lv === 2) s += zkHints(P, 2);
         }
-        sheets.push({ cls: 'prac zk', html: s, fixed: 'q', zkQ: true });
-        ans.push(zkAnsBlock(z, P, `演習${it.n > 1 ? k + 1 : ''}（${tag}）`, lv));
+        if (+z.no >= 450) s = ZK_NOCOL(s); sheets.push({ cls: 'prac zk', html: s, fixed: 'q', zkQ: true });
+        ans.push(((o) => (+z.no >= 450 ? Object.assign(o, { html: ZK_NOCOL(o.html) }) : o))(zkAnsBlock(z, P, `演習${it.n > 1 ? k + 1 : ''}（${tag}）`, lv)));
       }
     }
     // 解答: 問題文はのせず、解き方だけを順に並べる（1枚に入るだけ入れて、紙を減らす）
@@ -77346,6 +77469,13 @@ window.fitSheets = function (root) {
       if (n >= 1 && h2 > n * H && h2 < n * H + 0.25 * H) { const r = Math.max(0.8, (n * H - 6 * mm * n) / h2); kids.forEach(c => { c.style.zoom = r; }); sec.classList.add('fitted'); }
       return;
     }
+    if (sec.classList.contains('ny') && !sec.classList.contains('ansheet')) { // 入試の問題の紙（誘導で長くなる）: 印刷の改ページ（図・小問・考え方の枠は割らない）をまねて数え、最後の紙が少しだけのときは少し縮めて1枚へらす
+      const bl = [...sec.querySelectorAll(':scope > *:not(.nyd), .nyd > *:not(.nyi), .nyi > *')].map(e => { const r = e.getBoundingClientRect(); return { t: r.top, b: r.bottom, keep: e.classList.contains('nyd-h') }; }).filter(x => x.b > x.t).sort((x, y) => x.t - y.t);
+      const sim = (Hc) => { let y0 = top, pages = 1, last = top; bl.forEach((x, i) => { if (x.b - y0 > Hc && x.t > y0 + 1) { y0 = (i && bl[i - 1].keep && bl[i - 1].t > y0 + 1) ? bl[i - 1].t : x.t; pages++; } last = Math.max(last, x.b); }); return { pages, fill: (last - y0) / Hc }; };
+      const base = sim(H - 2 * mm); sec.dataset.fh = (base.pages - 1 + base.fill).toFixed(3);
+      if (base.pages > 1 && base.fill < 0.3) for (const r of [0.97, 0.94, 0.91, 0.88]) { if (sim((H - 6 * mm) / r).pages < base.pages) { kids.forEach(c => { c.style.zoom = r; }); sec.classList.add('fitted'); sec.dataset.fh = (sim((H - 2 * mm) / r).pages - 1 + sim((H - 2 * mm) / r).fill).toFixed(3); break; } }
+      return;
+    }
     const lim = sec.classList.contains('zkex') ? 1.34 : 1.22; if (h > H && h < H * lim) { const r = Math.max(sec.classList.contains('zkex') ? 0.74 : 0.81, (H - 3 * mm) / h); kids.forEach(c => { c.style.zoom = r; }); sec.classList.add('fitted'); }
   });
 };
@@ -77406,7 +77536,9 @@ window.TEANS = (function () {
     const no = ((it.querySelector('.qn') || {}).textContent || '').trim();
     const nya = it.querySelector('.nya'); const d = nya && nya.firstElementChild && !nya.firstElementChild.classList.contains('kx') ? nya.firstElementChild : null;
     const kx = form === 'brief' && nya ? nya.querySelector('.kx') : null;
-    return `<div class="ca-it" data-apid="${it.dataset.pid}">${head || ''}<div class="ca-r">${no ? `<span class="ca-no">${no}</span>` : ''}<span class="ca-a">${inner(d)}</span></div>${kx && txt(kx.innerHTML) ? `<div class="ca-s">${inner(kx)}</div>` : ''}</div>`;
+    const nd = it.closest('.nyd'); const yb = nd && nd.dataset.yd === 'fill' ? [...it.querySelectorAll('.nyy .yb')] : []; const seen = new Set();
+    const yl = yb.map(b => { const l = (b.querySelector('.ybl') || {}).textContent || ''; if (seen.has(l)) return ''; seen.add(l); return `${l} <b>${inner(b.querySelector('.yba'))}</b>`; }).filter(Boolean).join('');
+    return `<div class="ca-it" data-apid="${it.dataset.pid}">${head || ''}<div class="ca-r">${no ? `<span class="ca-no">${no}</span>` : ''}<span class="ca-a">${yl ? `<span class="ca-y">${yl}</span><span class="ca-ya">答</span>` : ''}${inner(d)}</span></div>${kx && txt(kx.innerHTML) ? `<div class="ca-s">${inner(kx)}</div>` : ''}</div>`;
   }
   function top(src, form) {
     const h1 = src.querySelector('.sh-head h1'); const tag = src.querySelector('.sh-tag'); let sub = '';
@@ -77522,7 +77654,7 @@ window.TEANS = (function () {
   const FIELDS = ['数と式', '関数', '図形', 'データの活用'];
   const MODES = { zk: { label: '図形', sub: '図形・関数の対策', cnt: '演習の数', def: 1 }, kk: { label: '計算', sub: '計算トレーニング', cnt: '回数', def: 2 }, ls: { label: 'セット', sub: '1回分・自習', cnt: '演習問題の数', def: 6 }, bk: { label: '分解', sub: '入試の解き方', cnt: '類題の数', def: 1 }, ny: { label: '入試', sub: '入試形式の大問', cnt: '大問の数', def: 1 }, sum: { label: 'まとめ', sub: '3年間の総復習', cnt: '確認問題', def: 4 }, why: { label: 'なるほど', sub: 'しくみ・意味', cnt: '', def: 1 }, learn: { label: 'わかる', sub: '説明＋穴うめ', cnt: 'やってみよう', def: 4 }, prac: { label: 'とく', sub: '練習問題', cnt: '問題数', def: 6 }, test: { label: 'テスト', sub: '定期テスト形式', cnt: '出題数', def: 3 } };
   const KEY = 'chu-math-print-v1';
-  let st = { grade: 1, mode: 'learn', sel: {}, off: {}, maxLv: 2, hint: true, answers: 'sep', ansForm: 'brief', seed: newSeed(), open: {}, lsWhy: true, pick: { test: [], ny: [] }, usePick: { test: false, ny: false } };
+  let st = { grade: 1, mode: 'learn', sel: {}, off: {}, maxLv: 2, hint: true, answers: 'sep', ansForm: 'brief', seed: newSeed(), open: {}, lsWhy: true, pick: { test: [], ny: [] }, usePick: { test: false, ny: false }, yudo: 'none' };
   try { const sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv) st = Object.assign(st, sv, { seed: newSeed() }); } catch (e) { /* 保存できない環境 */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* noop */ } };
   function okey(ch) { return st.mode === 'sum' ? 'S-' + ch : st.grade + '-' + ch; }
@@ -77590,7 +77722,7 @@ window.TEANS = (function () {
     else if (st.mode === 'kk') { chaptersOf(0).forEach(c => c.topics.forEach(t => { if (st.sel[t.id]) items.push({ id: t.id, n: t.id === 'kk-rec' ? 1 : Math.min(16, +st.sel[t.id] || MODES.kk.def) }); })); }
     else U.topics.forEach(t => { if (st.sel[t.id] && (st.mode === 'why' ? t.why : !t.whyOnly)) items.push({ id: t.id, n: +st.sel[t.id] || MODES[st.mode].def }); if (st.mode === 'prac' || st.mode === 'test' || st.mode === 'ls') (t.subs || []).forEach(u => { const k = t.id + '#' + u.id; if (st.sel[k]) items.push({ id: k, n: +st.sel[k] }); }); });
     // 学年をまたいで選んでいても、教科書の順番どおりに並べる
-    return { mode: st.mode, seed: st.seed, grade: st.grade, maxLv: st.maxLv, hint: st.hint, off: st.off, lsWhy: st.lsWhy !== false, items, pick: usingPick() ? plist().map(x => Object.assign({}, x)) : null };
+    return { mode: st.mode, seed: st.seed, grade: st.grade, maxLv: st.maxLv, hint: st.hint, off: st.off, lsWhy: st.lsWhy !== false, items, pick: usingPick() ? plist().map(x => Object.assign({}, x)) : null, yudo: ['none', 'hint', 'fill'].includes(st.yudo) ? st.yudo : 'none' };
   }
 
   function renderPreview() {
@@ -77625,7 +77757,7 @@ window.TEANS = (function () {
     $('#gradeWrap').hidden = st.mode === 'sum' || st.mode === 'kk';
     document.querySelectorAll('#gradeSeg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.g === st.grade)));
     document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === st.mode)));
-    $('#lv').value = st.maxLv; $('#hint').checked = st.hint; $('#answers').value = st.answers; const af = $('#ansForm'); if (af) { af.value = ['brief', 'only', 'full'].includes(st.ansForm) ? st.ansForm : 'brief'; $('#afWrap').hidden = !(st.mode === 'test' || st.mode === 'ny'); } const lw = $('#lsWhy'); if (lw) { lw.checked = st.lsWhy !== false; lw.closest('label').style.display = st.mode === 'ls' ? '' : 'none'; }
+    $('#lv').value = st.maxLv; $('#hint').checked = st.hint; $('#answers').value = st.answers; const af = $('#ansForm'); if (af) { af.value = ['brief', 'only', 'full'].includes(st.ansForm) ? st.ansForm : 'brief'; $('#afWrap').hidden = !(st.mode === 'test' || st.mode === 'ny'); } const yw = $('#yudo'); if (yw) { yw.value = ['none', 'hint', 'fill'].includes(st.yudo) ? st.yudo : 'none'; $('#ydWrap').hidden = st.mode !== 'ny'; } const lw = $('#lsWhy'); if (lw) { lw.checked = st.lsWhy !== false; lw.closest('label').style.display = st.mode === 'ls' ? '' : 'none'; }
     renderTree(); renderPreview(); save(); drawBrowse();
   }
   /* ---------- 問題を見て選ぶ（テスト・入試）: 理科 大問ジェネレーターと同じしくみ ----------
@@ -77663,7 +77795,7 @@ window.TEANS = (function () {
     // テストは、続けて並んだ同じ指示文の問題が1つの大問になる（プリントと同じまとめ方）
     let big = 0, last = null; const bn = L.map(x => { const o = info(x); if (st.mode === 'ny') return ++big; const k = o ? o.ins + '|' + o.cols : Math.random(); if (!(o && o.ins && k === last)) big++; last = k; return big; });
     return `<div class="tray-box"><div class="tray-h">選んだ${st.mode === 'ny' ? '大問' : '問題'}（${L.length}題）${st.mode === 'test' ? '<small>　同じ指示文の問題が続くと、1つの大問になります</small>' : ''}</div><ol class="tray">${L.map((x, i) => { const o = info(x) || { name: '（この型はありません）', sub: '', lvn: '', grade: '' };
-      return `<li><span class="tno">${i + 1}.</span>${st.mode === 'test' ? `<span class="tbig">大問${bn[i]}</span>` : ''}<span class="gb">中${o.grade}</span>${o.lvn ? `<span class="lvdot lv${o.lv}">${o.lvn}</span>` : ''}<span class="tn">${o.name}<small>${o.sub}</small></span><span class="tctl"><button type="button" data-pup="${i}" aria-label="上へ"${i ? '' : ' disabled'}>↑</button><button type="button" data-pdown="${i}" aria-label="下へ"${i < L.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-pdel="${i}" aria-label="外す">×</button></span></li>`; }).join('')}</ol><div class="tray-act"><button type="button" class="btn pri" data-pick-on="1">選んだ${L.length}題でプリントを作る</button><button type="button" class="btn" data-pick-clear="1">すべて外す</button></div></div>`;
+      return `<li><span class="tno">${i + 1}.</span>${st.mode === 'test' ? `<span class="tbig">大問${bn[i]}</span>` : ''}<span class="gb">中${o.grade}</span>${o.lvn ? `<span class="lvdot lv${o.lv}">${o.lvn}</span>` : ''}<span class="tn">${o.name}<small>${o.sub}</small></span>${st.mode === 'ny' ? ydSeg('pyd', i, x.yd || st.yudo || 'none') : ''}<span class="tctl"><button type="button" data-pup="${i}" aria-label="上へ"${i ? '' : ' disabled'}>↑</button><button type="button" data-pdown="${i}" aria-label="下へ"${i < L.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-pdel="${i}" aria-label="外す">×</button></span></li>`; }).join('')}</ol><div class="tray-act"><button type="button" class="btn pri" data-pick-on="1">選んだ${L.length}題でプリントを作る</button><button type="button" class="btn" data-pick-clear="1">すべて外す</button></div></div>`;
   }
   const rowHTML = (k, grade, lv, lvn, name) => {
     const n = plist().filter(x => keyOf(x) === k).length;
@@ -77700,15 +77832,17 @@ window.TEANS = (function () {
     box.innerHTML = `<div class="bhead"><b>${st.mode === 'ny' ? `入試：中${st.grade}までの範囲の型` : `テスト：中${st.grade} の単元の型`}</b><span class="bsp"></span><button type="button" class="btn" data-bans="1" aria-pressed="${bans}">${bans ? '解答と解説をかくす' : '解答と解説を表示'}</button></div>${tray()}<p class="bhint">型の行を押すと、その型の${st.mode === 'ny' ? '大問をまるごと' : '問題を1つ'}、印刷と同じ見た目で表示します。学年を変えると一覧が変わります（選んだ問題はそのまま）。${nOff ? `　出題しない型：${nOff}` : ''}</p>${listHTML()}`;
     open.forEach(k => { const d = box.querySelector(`details.bu[data-k="${CSS.escape(k)}"]`); if (d) d.open = true; });
   }
+  const YDL = { none: 'なし', hint: 'ヒント', fill: '穴うめ' }; const pvYd = {};
+  const ydSeg = (key, i, cur) => `<span class="ydseg"><span>誘導</span>${['none', 'hint', 'fill'].map(v => `<button type="button" data-${key}="${i}|${v}" aria-pressed="${cur === v}">${YDL[v]}</button>`).join('')}</span>`;
   function drawPv(k) {
     const el = $('#browse').querySelector(`[data-pv="${CSS.escape(k)}"]`); if (!el) return;
     const [a, b] = k.split('/'); const seed = bseed[k] || (bseed[k] = rnd());
     const x = st.mode === 'test' ? { t: a, g: b, seed } : { f: a, k: b, seed, grade: st.grade, level: st.maxLv || 2 };
     const p = pickProb(x);
-    const act = `<div class="pv-act"><button type="button" class="btn pri" data-padd="${k}">プリントに入れる</button><button type="button" class="btn" data-pnext="${k}">別の問題を見る</button><button type="button" class="btn del" data-hide="${k}">この型を出題しない</button></div>`;
+    const act = `<div class="pv-act"><button type="button" class="btn pri" data-padd="${k}">プリントに入れる</button><button type="button" class="btn" data-pnext="${k}">別の問題を見る</button><button type="button" class="btn del" data-hide="${k}">この型を出題しない</button>${st.mode === 'ny' ? ydSeg('vyd', k, pvYd[k] || st.yudo || 'none') : ''}</div>`;
     if (!p) { el.innerHTML = act + '<p class="bhint">この問題は表示できませんでした。「別の問題を見る」を押してください。</p>'; return; }
     if (st.mode === 'test') { const o = genOf(a, b); el.innerHTML = act + `<section class="sheet test pvs${bans ? ' ansheet' : ''}"><div class="grp"><div class="ins">${o.g.ins ? `<span>${T(o.g.ins)}</span>` : ''}</div><div class="pgrid c1">${window.probHTML(p, '', { rich: true, test: true })}</div></div></section>`; }
-    else el.innerHTML = act + `<section class="sheet ny pvs${bans ? ' ansheet' : ''}">${window.nyDaimon(p, '例')}</section>`;
+    else el.innerHTML = act + `<section class="sheet ny pvs${bans ? ' ansheet' : ''}">${window.nyDaimon(p, '例', pvYd[k] || st.yudo || 'none')}</section>`;
     if (window.figDeclutter) try { window.figDeclutter(el); } catch (e) { /* noop */ }
   }
   function afterTray() { save(); const open = [...$('#browse').querySelectorAll('details.bu[open]')].map(d => d.dataset.k); drawBrowse(); open.forEach(k => drawPv(k)); if (usingPick()) renderPreview(); }
@@ -77720,7 +77854,9 @@ window.TEANS = (function () {
     box.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return; const ds = b.dataset; const L = plist();
       if (ds.bans) { bans = !bans; drawBrowse(); box.querySelectorAll('details.bu[open]').forEach(d => drawPv(d.dataset.k)); return; }
-      if (ds.padd) { const k = ds.padd; const [a, c] = k.split('/'); const seed = bseed[k]; L.push(st.mode === 'test' ? { t: a, g: c, seed } : { f: a, k: c, seed, grade: st.grade, level: st.maxLv || 2 }); bseed[k] = rnd(); afterTray(); return; }
+      if (ds.padd) { const k = ds.padd; const [a, c] = k.split('/'); const seed = bseed[k]; const x = st.mode === 'test' ? { t: a, g: c, seed } : { f: a, k: c, seed, grade: st.grade, level: st.maxLv || 2 }; if (st.mode === 'ny' && pvYd[k] && pvYd[k] !== (st.yudo || 'none')) x.yd = pvYd[k]; L.push(x); bseed[k] = rnd(); afterTray(); return; }
+      if (ds.vyd) { const i = ds.vyd.lastIndexOf('|'); const k = ds.vyd.slice(0, i); pvYd[k] = ds.vyd.slice(i + 1); drawPv(k); return; } // 見本の誘導を切りかえ
+      if (ds.pyd) { const [i, v] = ds.pyd.split('|'); const x = L[+i]; if (!x) return; if (v === (st.yudo || 'none')) delete x.yd; else x.yd = v; afterTray(); return; } // 箱の大問ごとの誘導
       if (ds.pnext) { bseed[ds.pnext] = rnd(); drawPv(ds.pnext); return; }
       if (ds.hide) { if (!confirm('この型を出題しないようにしますか？（あとで「もとに戻す」で戻せます。左の「問題の型を選ぶ」でも戻せます）')) return; const [a, c] = ds.hide.split('/'); const tid = st.mode === 'ny' ? 'ny-' + a : a; const off = new Set(st.off[tid] || []); off.add(c); st.off[tid] = [...off]; st.pick[st.mode] = L.filter(x => keyOf(x) !== ds.hide); if (!st.pick[st.mode].length) setUse(false); renderAll(); return; }
       if (ds.unhide) { const [a, c] = ds.unhide.split('/'); const tid = st.mode === 'ny' ? 'ny-' + a : a; st.off[tid] = (st.off[tid] || []).filter(x => x !== c); renderAll(); return; }
@@ -77758,6 +77894,7 @@ window.TEANS = (function () {
     $('#lsWhy').addEventListener('change', e => { st.lsWhy = e.target.checked; renderAll(); });
     $('#answers').addEventListener('change', e => { st.answers = e.target.value; renderAll(); });
     $('#ansForm').addEventListener('change', e => { st.ansForm = e.target.value; renderAll(); });
+    $('#yudo').addEventListener('change', e => { st.yudo = e.target.value; renderAll(); });
     window.TECFG = cfg; // 編集（問題の追加）で、選んでいる単元・学年・むずかしさを使う
     $('#reroll').addEventListener('click', () => { st.seed = newSeed(); if (usingPick()) { plist().forEach(x => { x.seed = rnd(); }); save(); } renderPreview(); }); // 見て選んだ問題は、同じ型のまま数を変える（理科と同じ）
     initPick();
@@ -77794,7 +77931,7 @@ window.TEANS = (function () {
     rescore(P); if (window.TEANS) window.TEANS.rebuild(P); // テスト・入試の解答は、いまの問題の紙からつくり直す
     if (!on) { P.querySelectorAll('[contenteditable="true"]').forEach(e => e.removeAttribute('contenteditable')); window.fitSheets(P); return; }
     P.querySelectorAll('.pb[data-pid]').forEach(e => e.insertAdjacentHTML('afterbegin', TOOL('pb', isQ(e) ? MV(e, '.pb', 'up', 'down') : '')));
-    P.querySelectorAll('.nyd[data-pid]').forEach(e => e.insertAdjacentHTML('afterbegin', TOOL('ny', isQ(e) ? MV(e, '.nyd', 'nup', 'ndown', true) : '')));
+    P.querySelectorAll('.nyd[data-pid]').forEach(e => e.insertAdjacentHTML('afterbegin', TOOL('ny', (isQ(e) ? MV(e, '.nyd', 'nup', 'ndown', true) : '') + (e.querySelector('.nyh, .nyy') && !e.closest('.ny-moshi') ? `<span class="ydseg">${[['none', 'なし'], ['hint', 'ヒント'], ['fill', '穴うめ']].map(([v, l]) => `<button data-ed="yd" data-v="${v}" aria-pressed="${(e.dataset.yd || 'none') === v}" title="この大問の誘導">${v === 'none' ? '誘導なし' : l}</button>`).join('')}</span>` : ''))));
     P.querySelectorAll('.nyi[data-pid]').forEach(e => { if (e.parentElement.querySelectorAll('.nyi').length > 1) e.insertAdjacentHTML('afterbegin', TOOL('sub')); }); // 入試の小問 (1)(2)… も1つずつ消せる
     P.querySelectorAll('section.sheet').forEach(e => e.insertAdjacentHTML('afterbegin', '<div class="edtools edsheet" contenteditable="false"><button data-ed="delsheet">このページを消す</button></div>'));
     P.querySelectorAll('.grp > .ins').forEach(e => {
@@ -77865,7 +78002,7 @@ window.TEANS = (function () {
     const N = window.NYUSHI; const cs = copies(pid); const src = cs[0]; if (!N || !src || !src.dataset.ny) return;
     const c0 = N.parseCode(src.dataset.ny); if (!c0 || c0.moshi) return;
     let p; try { p = N.generate(c0.field, c0.pat, Math.floor(Math.random() * 999999), c0.grade, c0.level); } catch (e) { return; }
-    cs.forEach(c => { const no = (c.querySelector('.bigno') || {}).textContent || '1'; c.insertAdjacentHTML('afterend', window.nyDaimon(p, no)); const nw = c.nextElementSibling; c.remove(); const np = nw.dataset.pid; nw.dataset.pid = pid; nw.querySelectorAll('.nyi[data-pid]').forEach(x => { x.dataset.pid = x.dataset.pid.replace(np, pid); }); });
+    cs.forEach(c => { const no = (c.querySelector('.bigno') || {}).textContent || '1'; c.insertAdjacentHTML('afterend', window.nyDaimon(p, no, c.dataset.yd)); const nw = c.nextElementSibling; c.remove(); const np = nw.dataset.pid; nw.dataset.pid = pid; nw.querySelectorAll('.nyi[data-pid]').forEach(x => { x.dataset.pid = x.dataset.pid.replace(np, pid); }); });
     tidy(); decorate();
   }
   function regen(pid) {
@@ -77905,7 +78042,7 @@ window.TEANS = (function () {
       if (e.relatedTarget && it.contains(e.relatedTarget)) return;
       it.removeEventListener('focusout', h);
       const src = copies(it.dataset.apid)[0]; const a = it.querySelector('.ca-a'), s = it.querySelector('.ca-s');
-      if (src && src.classList.contains('nyi')) { const nya = src.querySelector('.nya'); const d = nya && nya.firstElementChild && !nya.firstElementChild.classList.contains('kx') ? nya.firstElementChild : null; if (d && a) d.innerHTML = a.innerHTML; const kx = nya && nya.querySelector('.kx'); if (kx && s) kx.innerHTML = s.innerHTML; }
+      if (src && src.classList.contains('nyi')) { const nya = src.querySelector('.nya'); const d = nya && nya.firstElementChild && !nya.firstElementChild.classList.contains('kx') ? nya.firstElementChild : null; if (d && a) { const c = a.cloneNode(true); c.querySelectorAll('.ca-y,.ca-ya').forEach(x => x.remove()); d.innerHTML = c.innerHTML; } const kx = nya && nya.querySelector('.kx'); if (kx && s) kx.innerHTML = s.innerHTML; }
       else if (src) {
         const ava = src.querySelector('.ansl .ava');
         if (a) {
@@ -77993,7 +78130,7 @@ window.TEANS = (function () {
     let p = null; for (let i = 0; i < 5 && !p; i++) { try { p = N.generate(f, k, Math.floor(Math.random() * 999999), grade, level); } catch (e) { p = null; } }
     if (!p) { const s = $('#teaddS'); if (s) s.innerHTML = '<div class="ta-empty">この型の問題を作れませんでした。もう一度押すか、ほかの型を選んでください。</div>'; return; }
     snap();
-    const ds = [...sec.querySelectorAll('.nyd')]; const html = window.nyDaimon(p, ds.length + 1);
+    const ds = [...sec.querySelectorAll('.nyd')]; const html = window.nyDaimon(p, ds.length + 1, ((window.TECFG ? window.TECFG() : {}) || {}).yudo);
     if (ds.length) ds[ds.length - 1].insertAdjacentHTML('afterend', html); else { const a = sec.querySelector('.nymh') || sec.querySelector('.sh-head'); if (a) a.insertAdjacentHTML('afterend', html); else sec.insertAdjacentHTML('beforeend', html); }
     const nw = [...sec.querySelectorAll('.nyd')].pop();
     closePanel(); tidy(); decorate(); flash(nw && copies(nw.dataset.pid)[0]);
@@ -78037,6 +78174,7 @@ window.TEANS = (function () {
       else if (kind === 'del') { copies(id).forEach(c => c.remove()); if (box.isConnected) box.remove(); tidy(); decorate(); }
       else if (kind === 'regen') regen(id);
       else if (kind === 'nyregen') nyRegen(id);
+      else if (kind === 'yd') { copies(id).forEach(c => { c.dataset.yd = b.dataset.v; }); tidy(); decorate(); }
       else if (kind === 'text') startText(box);
       else if (kind === 'atext') startAText(box);
     });
@@ -78045,6 +78183,27 @@ window.TEANS = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 
+</script>
+
+<script>
+/* 関数（座標軸のある図）では、図形に色をぬらない。三角形などの塗りを消して線だけにする（問題・ヒント・解説・解答・見本すべて） */
+(function () {
+  const KEEP = /^(none|transparent|white|black|currentcolor|#000|#000000|#111|#111111|#222|#222222|#333|#333333|#444|#fff|#ffffff|#d0312d|#1f4e8c)$/i;
+  const isAxes = (sv) => { let x = 0, y = 0, o = 0; for (const t of sv.querySelectorAll('text')) { const v = t.textContent.trim(); if (v === 'x') x = 1; else if (v === 'y') y = 1; else if (v === 'O') o = 1; if (x && y && o) return true; } return false; };
+  function clean(sv) {
+    if (sv.__nofill) return; sv.__nofill = true; if (!isAxes(sv)) return;
+    sv.querySelectorAll('polygon,path,rect,ellipse').forEach(e => {
+      const f = (e.getAttribute('fill') || '').trim(); const sf = e.style && e.style.fill;
+      if (sf && !KEEP.test(sf)) e.style.fill = 'none';
+      if (!f || KEEP.test(f) || /^url\(/.test(f)) return;
+      e.setAttribute('fill', 'none'); e.removeAttribute('fill-opacity');
+    });
+  }
+  const scan = (root) => { if (!root || !root.querySelectorAll) return; if (root.tagName && root.tagName.toLowerCase() === 'svg') clean(root); root.querySelectorAll('svg').forEach(clean); };
+  window.NOFILL = scan;
+  const start = () => { scan(document.body); new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) scan(n); }).observe(document.body, { childList: true, subtree: true }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
 </script>
 </body>
 </html>
